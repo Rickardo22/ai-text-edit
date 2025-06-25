@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML Analyzer Tool v0.12</title>
+  <title>HTML Analyzer Tool v0.14</title>
   <style>
     body {
       font-family: sans-serif;
@@ -74,11 +74,34 @@
       list-style: disc;
       padding-left: 20px;
     }
+    .replace-controls {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .replace-controls input {
+      padding: 5px;
+      font-size: 14px;
+    }
+    .replace-controls button {
+      padding: 6px 12px;
+      font-weight: bold;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .replace-controls button:hover {
+      background-color: #1e7e34;
+    }
   </style>
 </head>
 <body>
   <h1>HTML Text Analyzer Tool</h1>
-  <div class="version">Version 0.12 (previous: 0.1)</div>
+  <div class="version">Version 0.14 (previous: 0.13)</div>
 
   <div id="editor" contenteditable="true" placeholder="Paste your text here..."></div>
 
@@ -87,6 +110,13 @@
     <button onclick="showHTML()">View HTML</button>
     <button onclick="clearEditor()">Clear</button>
     <button onclick="copyHTML()">Copy HTML</button>
+  </div>
+
+  <div class="replace-controls">
+    <label>Заменить:</label>
+    <input type="text" id="findText" placeholder="Найти...">
+    <input type="text" id="replaceText" placeholder="Заменить на...">
+    <button onclick="replaceInEditor()">Заменить</button>
   </div>
 
   <div id="preview-pane"></div>
@@ -103,7 +133,10 @@
       '&rsquo;': 'Апостроф неправильный (’)',
       '&hellip;': 'Многоточие (&hellip;)',
       '&thinsp;': 'Тонкая пауза (&thinsp;)',
-      '&copy;|&reg;': 'Копирайт или Регистрация'
+      '&copy;|&reg;': 'Копирайт или Регистрация',
+      'data-start': 'Атрибут data-start',
+      'data-end': 'Атрибут data-end',
+      '<h[1-6][^>]*>[\s\S]*?[\u{1F300}-\u{1FAD6}\u{2600}-\u{26FF}]+[\s\S]*?<\/h[1-6]>': 'Emoji в заголовках'
     };
 
     function formatHTML(html) {
@@ -154,9 +187,9 @@
     }
 
     function runSymbolChecks(html) {
-      let result = '<h3>Обнаруженные символы:</h3><ul>';
+      let result = '<h3>Обнаруженные символы и конструкции:</h3><ul>';
       for (const pattern in symbolChecks) {
-        const regex = new RegExp(pattern);
+        const regex = new RegExp(pattern, 'u');
         if (regex.test(html)) {
           result += `<li><b>${symbolChecks[pattern]}</b>: <span style='color:green;'>Найдено</span></li>`;
         } else {
@@ -165,6 +198,16 @@
       }
       result += '</ul>';
       document.getElementById("symbol-check-results").innerHTML = result;
+    }
+
+    function replaceInEditor() {
+      const find = document.getElementById("findText").value;
+      const replace = document.getElementById("replaceText").value;
+      if (!find) return alert("Введите текст для поиска.");
+      const editor = document.getElementById("editor");
+      const regex = new RegExp(find, 'g');
+      editor.innerHTML = editor.innerHTML.replace(regex, replace);
+      alert("Заменено.");
     }
   </script>
 </body>
