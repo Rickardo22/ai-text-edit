@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML Analyzer Tool v0.15</title>
+  <title>HTML Analyzer Tool v0.16</title>
   <style>
     body {
       font-family: sans-serif;
@@ -101,7 +101,7 @@
 </head>
 <body>
   <h1>HTML Text Analyzer Tool</h1>
-  <div class="version">Version 0.15 (previous: 0.14)</div>
+  <div class="version">Version 0.16 (previous: 0.15)</div>
 
   <div id="editor" contenteditable="true" placeholder="Paste your text here..."></div>
 
@@ -126,35 +126,51 @@
 
   <script>
     const symbolChecks = {
-      '&mdash;': 'Тире (&mdash;)',
-      '&laquo;|&raquo;': 'Кавычки (« »)',
-      '&ldquo;|&rdquo;': 'Кавычки (“ ”)',
-      '&rarr;|&larr;': 'Стрелки (→ ←)',
-      '&nbsp;': 'Неразрывный пробел (&nbsp;)',
-      '&rsquo;': 'Апостроф неправильный (’)',
-      '&hellip;': 'Многоточие (&hellip;)',
-      '&thinsp;': 'Тонкая пауза (&thinsp;)',
-      '&copy;|&reg;': 'Копирайт или Регистрация',
+      '—': 'Тире (—)',
+      '[«»]': 'Кавычки (« »)',
+      '[“”]': 'Кавычки (“ ”)',
+      '[→←]': 'Стрелки (→ ←)',
+      '\u00A0': 'Неразрывный пробел',
+      '’': 'Апостроф неправильный (’)',
+      '…': 'Многоточие (…) ',
+      ' ': 'Тонкая пауза',
+      '[©®]': 'Копирайт или Регистрация',
       'data-start': 'Атрибут data-start',
       'data-end': 'Атрибут data-end',
-      '<h[1-6][^>]*>[\s\S]*?[\u{1F300}-\u{1FAD6}\u{2600}-\u{26FF}]+[\s\S]*?<\/h[1-6]>': 'Emoji в заголовках'
+      '[\u{1F300}-\u{1FAD6}\u{2600}-\u{26FF}]': 'Emoji в заголовках'
     };
 
     function autoClean() {
-      let html = document.getElementById("editor").innerHTML;
-      html = html.replace(/&mdash;/g, '-');
-      html = html.replace(/&laquo;|&raquo;/g, '"');
-      html = html.replace(/&ldquo;|&rdquo;/g, '"');
-      html = html.replace(/&rarr;|&larr;/g, '');
-      html = html.replace(/&nbsp;/g, ' ');
-      html = html.replace(/&rsquo;/g, "'");
-      html = html.replace(/&hellip;/g, '.');
-      html = html.replace(/&thinsp;/g, '');
-      html = html.replace(/&copy;|&reg;/g, '');
-      html = html.replace(/\s?data-start="[^"]*"/g, '');
-      html = html.replace(/\s?data-end="[^"]*"/g, '');
-      html = html.replace(/<h[1-6][^>]*>[\s\S]*?[\u{1F300}-\u{1FAD6}\u{2600}-\u{26FF}]+[\s\S]*?<\/h[1-6]>/gu, '');
-      document.getElementById("editor").innerHTML = html;
+      const editor = document.getElementById("editor");
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = editor.innerHTML;
+
+      // Очистка по символам
+      let html = tempDiv.innerHTML
+        .replace(/—/g, '-')
+        .replace(/[«»]/g, '"')
+        .replace(/[“”]/g, '"')
+        .replace(/[→←]/g, '')
+        .replace(/\u00A0/g, ' ')
+        .replace(/’/g, "'")
+        .replace(/…/g, '.')
+        .replace(/ /g, '')
+        .replace(/[©®]/g, '');
+
+      tempDiv.innerHTML = html;
+
+      // Удаление атрибутов
+      tempDiv.querySelectorAll('[data-start]').forEach(el => el.removeAttribute('data-start'));
+      tempDiv.querySelectorAll('[data-end]').forEach(el => el.removeAttribute('data-end'));
+
+      // Удаление заголовков с emoji
+      tempDiv.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(el => {
+        if (/[🌀-🫖☀-⛿]/u.test(el.textContent)) {
+          el.remove();
+        }
+      });
+
+      editor.innerHTML = tempDiv.innerHTML;
       alert("Очистка выполнена.");
     }
 
@@ -208,7 +224,7 @@
     function runSymbolChecks(html) {
       let result = '<h3>Обнаруженные символы и конструкции:</h3><ul>';
       for (const pattern in symbolChecks) {
-        const regex = new RegExp(pattern, 'u');
+        const regex = new RegExp(pattern, 'gu');
         if (regex.test(html)) {
           result += `<li><b>${symbolChecks[pattern]}</b>: <span style='color:green;'>Найдено</span></li>`;
         } else {
