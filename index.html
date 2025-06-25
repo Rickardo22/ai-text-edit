@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML Analyzer Tool v0.14</title>
+  <title>HTML Analyzer Tool v0.15</title>
   <style>
     body {
       font-family: sans-serif;
@@ -101,7 +101,7 @@
 </head>
 <body>
   <h1>HTML Text Analyzer Tool</h1>
-  <div class="version">Version 0.14 (previous: 0.13)</div>
+  <div class="version">Version 0.15 (previous: 0.14)</div>
 
   <div id="editor" contenteditable="true" placeholder="Paste your text here..."></div>
 
@@ -110,6 +110,7 @@
     <button onclick="showHTML()">View HTML</button>
     <button onclick="clearEditor()">Clear</button>
     <button onclick="copyHTML()">Copy HTML</button>
+    <button onclick="autoClean()">Auto Clean</button>
   </div>
 
   <div class="replace-controls">
@@ -138,6 +139,24 @@
       'data-end': 'Атрибут data-end',
       '<h[1-6][^>]*>[\s\S]*?[\u{1F300}-\u{1FAD6}\u{2600}-\u{26FF}]+[\s\S]*?<\/h[1-6]>': 'Emoji в заголовках'
     };
+
+    function autoClean() {
+      let html = document.getElementById("editor").innerHTML;
+      html = html.replace(/&mdash;/g, '-');
+      html = html.replace(/&laquo;|&raquo;/g, '"');
+      html = html.replace(/&ldquo;|&rdquo;/g, '"');
+      html = html.replace(/&rarr;|&larr;/g, '');
+      html = html.replace(/&nbsp;/g, ' ');
+      html = html.replace(/&rsquo;/g, "'");
+      html = html.replace(/&hellip;/g, '.');
+      html = html.replace(/&thinsp;/g, '');
+      html = html.replace(/&copy;|&reg;/g, '');
+      html = html.replace(/\s?data-start="[^"]*"/g, '');
+      html = html.replace(/\s?data-end="[^"]*"/g, '');
+      html = html.replace(/<h[1-6][^>]*>[\s\S]*?[\u{1F300}-\u{1FAD6}\u{2600}-\u{26FF}]+[\s\S]*?<\/h[1-6]>/gu, '');
+      document.getElementById("editor").innerHTML = html;
+      alert("Очистка выполнена.");
+    }
 
     function formatHTML(html) {
       const tab = '  ';
