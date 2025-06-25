@@ -9,22 +9,40 @@
       font-family: sans-serif;
       padding: 20px;
       background: #f9f9f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     h1 {
       font-size: 1.5em;
+      text-align: center;
     }
     .tabs {
       margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
     }
     .tabs button {
-      margin-right: 10px;
-      padding: 8px 16px;
+      margin: 5px;
+      padding: 10px 20px;
+      font-weight: bold;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
       cursor: pointer;
+    }
+    .tabs button:hover {
+      background-color: #0056b3;
     }
     #editor {
       border: 1px solid #ccc;
       background: white;
-      min-height: 200px;
+      height: 300px;
+      width: 80%;
+      max-width: 800px;
+      overflow-y: auto;
       padding: 10px;
       margin-bottom: 10px;
     }
@@ -32,18 +50,13 @@
       border: 1px solid #ccc;
       background: white;
       padding: 10px;
-      display: none;
       white-space: pre-wrap;
+      width: 80%;
+      max-width: 800px;
+      display: none;
     }
     #html-pane {
-      width: 100%;
-      height: 200px;
-    }
-    .controls {
-      margin-top: 10px;
-    }
-    .controls button {
-      margin-right: 10px;
+      height: 300px;
     }
   </style>
 </head>
@@ -62,6 +75,12 @@
   <textarea id="html-pane" readonly></textarea>
 
   <script>
+    function formatHTML(html) {
+      const formatted = html.replace(/></g, '>
+<');
+      return formatted;
+    }
+
     function showPreview() {
       const content = document.getElementById("editor").innerHTML;
       document.getElementById("preview-pane").innerHTML = content;
@@ -71,7 +90,7 @@
 
     function showHTML() {
       const content = document.getElementById("editor").innerHTML;
-      document.getElementById("html-pane").value = content;
+      document.getElementById("html-pane").value = formatHTML(content);
       document.getElementById("preview-pane").style.display = 'none';
       document.getElementById("html-pane").style.display = 'block';
     }
@@ -83,7 +102,7 @@
     }
 
     function copyHTML() {
-      const html = document.getElementById("editor").innerHTML;
+      const html = document.getElementById("html-pane").value;
       navigator.clipboard.writeText(html).then(() => {
         alert("HTML copied to clipboard");
       });
