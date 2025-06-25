@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML Analyzer Tool v0.16</title>
+  <title>HTML Analyzer Tool v0.17</title>
   <style>
     body {
       font-family: sans-serif;
@@ -101,7 +101,7 @@
 </head>
 <body>
   <h1>HTML Text Analyzer Tool</h1>
-  <div class="version">Version 0.16 (previous: 0.15)</div>
+  <div class="version">Version 0.17 (previous: 0.16)</div>
 
   <div id="editor" contenteditable="true" placeholder="Paste your text here..."></div>
 
@@ -111,6 +111,7 @@
     <button onclick="clearEditor()">Clear</button>
     <button onclick="copyHTML()">Copy HTML</button>
     <button onclick="autoClean()">Auto Clean</button>
+    <button onclick="copyCleaned()">Copy Cleaned</button>
   </div>
 
   <div class="replace-controls">
@@ -145,7 +146,6 @@
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = editor.innerHTML;
 
-      // Очистка по символам
       let html = tempDiv.innerHTML
         .replace(/—/g, '-')
         .replace(/[«»]/g, '"')
@@ -159,19 +159,25 @@
 
       tempDiv.innerHTML = html;
 
-      // Удаление атрибутов
       tempDiv.querySelectorAll('[data-start]').forEach(el => el.removeAttribute('data-start'));
       tempDiv.querySelectorAll('[data-end]').forEach(el => el.removeAttribute('data-end'));
 
-      // Удаление заголовков с emoji
       tempDiv.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(el => {
         if (/[🌀-🫖☀-⛿]/u.test(el.textContent)) {
           el.remove();
         }
       });
 
-      editor.innerHTML = tempDiv.innerHTML;
-      alert("Очистка выполнена.");
+      document.getElementById("preview-pane").innerHTML = tempDiv.innerHTML;
+      document.getElementById("preview-pane").style.display = 'block';
+      document.getElementById("html-pane").style.display = 'none';
+    }
+
+    function copyCleaned() {
+      const text = document.getElementById("preview-pane").innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Очищенный текст скопирован.");
+      });
     }
 
     function formatHTML(html) {
