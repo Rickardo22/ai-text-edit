@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML Analyzer Tool</title>
+  <title>HTML Analyzer Tool v0.12</title>
   <style>
     body {
       font-family: sans-serif;
@@ -16,6 +16,11 @@
     h1 {
       font-size: 1.5em;
       text-align: center;
+    }
+    .version {
+      font-size: 0.9em;
+      color: #888;
+      margin-bottom: 10px;
     }
     .tabs {
       margin-top: 10px;
@@ -60,10 +65,21 @@
       background-color: #f4f4f4;
       overflow-x: auto;
     }
+    .results {
+      margin-top: 20px;
+      width: 80%;
+      max-width: 800px;
+    }
+    .results ul {
+      list-style: disc;
+      padding-left: 20px;
+    }
   </style>
 </head>
 <body>
   <h1>HTML Text Analyzer Tool</h1>
+  <div class="version">Version 0.12 (previous: 0.1)</div>
+
   <div id="editor" contenteditable="true" placeholder="Paste your text here..."></div>
 
   <div class="tabs">
@@ -75,8 +91,21 @@
 
   <div id="preview-pane"></div>
   <pre id="html-pane"></pre>
+  <div class="results" id="symbol-check-results"></div>
 
   <script>
+    const symbolChecks = {
+      '&mdash;': 'Тире (&mdash;)',
+      '&laquo;|&raquo;': 'Кавычки (« »)',
+      '&ldquo;|&rdquo;': 'Кавычки (“ ”)',
+      '&rarr;|&larr;': 'Стрелки (→ ←)',
+      '&nbsp;': 'Неразрывный пробел (&nbsp;)',
+      '&rsquo;': 'Апостроф неправильный (’)',
+      '&hellip;': 'Многоточие (&hellip;)',
+      '&thinsp;': 'Тонкая пауза (&thinsp;)',
+      '&copy;|&reg;': 'Копирайт или Регистрация'
+    };
+
     function formatHTML(html) {
       const tab = '  ';
       let result = '', indent= '';
@@ -99,6 +128,7 @@
       document.getElementById("preview-pane").innerHTML = content;
       document.getElementById("preview-pane").style.display = 'block';
       document.getElementById("html-pane").style.display = 'none';
+      document.getElementById("symbol-check-results").innerHTML = '';
     }
 
     function showHTML() {
@@ -106,12 +136,14 @@
       document.getElementById("html-pane").textContent = formatHTML(content);
       document.getElementById("preview-pane").style.display = 'none';
       document.getElementById("html-pane").style.display = 'block';
+      runSymbolChecks(content);
     }
 
     function clearEditor() {
       document.getElementById("editor").innerHTML = "";
       document.getElementById("preview-pane").innerHTML = "";
       document.getElementById("html-pane").textContent = "";
+      document.getElementById("symbol-check-results").innerHTML = '';
     }
 
     function copyHTML() {
@@ -119,6 +151,20 @@
       navigator.clipboard.writeText(html).then(() => {
         alert("HTML copied to clipboard");
       });
+    }
+
+    function runSymbolChecks(html) {
+      let result = '<h3>Обнаруженные символы:</h3><ul>';
+      for (const pattern in symbolChecks) {
+        const regex = new RegExp(pattern);
+        if (regex.test(html)) {
+          result += `<li><b>${symbolChecks[pattern]}</b>: <span style='color:green;'>Найдено</span></li>`;
+        } else {
+          result += `<li><b>${symbolChecks[pattern]}</b>: <span style='color:red;'>Не найдено</span></li>`;
+        }
+      }
+      result += '</ul>';
+      document.getElementById("symbol-check-results").innerHTML = result;
     }
   </script>
 </body>
