@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Анализ HTML-фрагмента</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: auto; }
+    textarea { width: 100%; height: 200px; font-family: monospace; margin-bottom: 20px; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    .result-block { margin-top: 30px; }
+    .result-block h2 { margin-top: 40px; }
+    .editable { border: 1px solid #ccc; padding: 10px; background: #f9f9f9; min-height: 150px; }
+    ul { list-style: disc; margin-left: 20px; }
+    li { margin: 5px 0; }
+    pre { background: #f0f0f0; padding: 10px; overflow: auto; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+
+  <h1>Анализ HTML-фрагмента</h1>
+  <p>Вставь HTML-код или текст ниже, нажми "Анализировать" — и получишь отчёт с возможностью редактирования результата.</p>
+
+  <textarea id="inputArea" placeholder="Вставь сюда HTML или текст..."></textarea>
+  <br>
+  <button onclick="analyze()">Анализировать</button>
+
+  <div class="result-block" id="results" style="display:none;">
+    <h2>HTML (просмотр):</h2>
+    <pre id="htmlView"></pre>
+
+    <h2>Анализ признаков GPT:</h2>
+    <ul id="checkList"></ul>
+
+    <h2>Редактируемый результат:</h2>
+    <div id="editableOutput" class="editable" contenteditable="true"></div>
+  </div>
+
+  <script>
+    function analyze() {
+      const raw = document.getElementById('inputArea').value;
+      const htmlEscaped = raw.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      document.getElementById('htmlView').textContent = htmlEscaped;
+
+      const checks = {
+        '&mdash;': 'Тире (&mdash;)',
+        '&laquo;|&raquo;': 'Кавычки (« »)',
+        '&ldquo;|&rdquo;': 'Кавычки (“ ”)',
+        '&rarr;|&larr;': 'Стрелки (→ ←)',
+        '&nbsp;': 'Неразрывный пробел (&nbsp;)',
+        '&rsquo;': 'Апостроф неправильный (’)',
+        '&hellip;': 'Многоточие (&hellip;)',
+        '&thinsp;': 'Тонкая пауза (&thinsp;)',
+        '&copy;|&reg;': 'Копирайт или Регистрация',
+        '<hr[\\s/]*>': 'Самозакрывающийся тег <hr>',
+        '<div>\\s*<hr[\\s/]*>\\s*</div>': 'Вложенный <div><hr /></div>',
+        '<li>\\s*<p>': '<li> с вложенным <p>',
+        'data-start|data-end': 'Атрибуты data-start/data-end',
+        'data-pm-slice': 'Атрибут data-pm-slice',
+        'data-spread': 'Атрибут data-spread',
+        '<h[1-6][^>]*>[^<]*(?:[\u203C-\u3299\uD83C-\uDBFF\uDC00-\uDFFF])+[^<]*<\/h[1-6]>': 'Emoji в заголовках',
+        '<p>\\s*<strong>': '<p> сразу с <strong>',
+        '<li>\\s*<strong>': '<li> сразу с <strong>',
+        '<strong>[^<]{1,50}:': '<strong> с двоеточием внутри'
+      };
+
+      const checkList = document.getElementById('checkList');
+      checkList.innerHTML = '';
+
+      for (const key in checks) {
+        const re = new RegExp(key, 'i');
+        const found = re.test(raw);
+        const li = document.createElement('li');
+        li.innerHTML = `<b>${checks[key]}</b>: <span style="color:${found ? 'green' : 'red'};">${found ? 'Найдено' : 'Не найдено'}</span>`;
+        checkList.appendChild(li);
+      }
+
+      document.getElementById('editableOutput').innerText = raw;
+      document.getElementById('results').style.display = 'block';
+    }
+  </script>
+
+</body>
+</html>
