@@ -56,7 +56,9 @@
       display: none;
     }
     #html-pane {
-      height: 300px;
+      font-family: monospace;
+      background-color: #f4f4f4;
+      overflow-x: auto;
     }
   </style>
 </head>
@@ -72,13 +74,24 @@
   </div>
 
   <div id="preview-pane"></div>
-  <textarea id="html-pane" readonly></textarea>
+  <pre id="html-pane"></pre>
 
   <script>
     function formatHTML(html) {
-      const formatted = html.replace(/></g, '>
-<');
-      return formatted;
+      const tab = '  ';
+      let result = '', indent= '';
+      html.split(/\r?\n/).join('').replace(/>\s*</g,'><').split(/</).forEach((element) => {
+        if(element){
+          if(element[0] === '/'){
+            indent = indent.substring(tab.length);
+          }
+          result += indent + '<' + element + '\n';
+          if(element[0] !== '/' && !element.includes('/>') && !element.includes('!') && !element.includes('input') && !element.includes('br') && !element.includes('hr')){
+            indent += tab;
+          }
+        }
+      });
+      return result;
     }
 
     function showPreview() {
@@ -90,7 +103,7 @@
 
     function showHTML() {
       const content = document.getElementById("editor").innerHTML;
-      document.getElementById("html-pane").value = formatHTML(content);
+      document.getElementById("html-pane").textContent = formatHTML(content);
       document.getElementById("preview-pane").style.display = 'none';
       document.getElementById("html-pane").style.display = 'block';
     }
@@ -98,11 +111,11 @@
     function clearEditor() {
       document.getElementById("editor").innerHTML = "";
       document.getElementById("preview-pane").innerHTML = "";
-      document.getElementById("html-pane").value = "";
+      document.getElementById("html-pane").textContent = "";
     }
 
     function copyHTML() {
-      const html = document.getElementById("html-pane").value;
+      const html = document.getElementById("html-pane").textContent;
       navigator.clipboard.writeText(html).then(() => {
         alert("HTML copied to clipboard");
       });
