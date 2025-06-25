@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML Analyzer Tool v0.17</title>
+  <title>HTML Analyzer Tool v0.18</title>
   <style>
     body {
       font-family: sans-serif;
@@ -101,7 +101,7 @@
 </head>
 <body>
   <h1>HTML Text Analyzer Tool</h1>
-  <div class="version">Version 0.17 (previous: 0.16)</div>
+  <div class="version">Version 0.18 (previous: 0.17)</div>
 
   <div id="editor" contenteditable="true" placeholder="Paste your text here..."></div>
 
@@ -126,48 +126,45 @@
   <div class="results" id="symbol-check-results"></div>
 
   <script>
-    const symbolChecks = {
-      '—': 'Тире (—)',
-      '[«»]': 'Кавычки (« »)',
-      '[“”]': 'Кавычки (“ ”)',
-      '[→←]': 'Стрелки (→ ←)',
-      '\u00A0': 'Неразрывный пробел',
-      '’': 'Апостроф неправильный (’)',
-      '…': 'Многоточие (…) ',
-      ' ': 'Тонкая пауза',
-      '[©®]': 'Копирайт или Регистрация',
-      'data-start': 'Атрибут data-start',
-      'data-end': 'Атрибут data-end',
-      '[\u{1F300}-\u{1FAD6}\u{2600}-\u{26FF}]': 'Emoji в заголовках'
-    };
-
     function autoClean() {
       const editor = document.getElementById("editor");
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = editor.innerHTML;
 
-      let html = tempDiv.innerHTML
-        .replace(/—/g, '-')
-        .replace(/[«»]/g, '"')
-        .replace(/[“”]/g, '"')
-        .replace(/[→←]/g, '')
-        .replace(/\u00A0/g, ' ')
-        .replace(/’/g, "'")
-        .replace(/…/g, '.')
-        .replace(/ /g, '')
-        .replace(/[©®]/g, '');
+      // Замена спецсимволов
+      const walk = node => {
+        if (node.nodeType === 3) { // text node
+          node.nodeValue = node.nodeValue
+            .replace(/—/g, '-')
+            .replace(/[«»]/g, '"')
+            .replace(/[“”]/g, '"')
+            .replace(/[→←]/g, '')
+            .replace(/\u00A0/g, ' ')
+            .replace(/’/g, "'")
+            .replace(/…/g, '.')
+            .replace(/ /g, '')
+            .replace(/[©®]/g, '');
+        } else if (node.nodeType === 1) { // element node
+          [...node.childNodes].forEach(walk);
+        }
+      };
+      walk(tempDiv);
 
-      tempDiv.innerHTML = html;
+      // Удаление data-атрибутов
+      tempDiv.querySelectorAll('[data-start], [data-end]').forEach(el => {
+        el.removeAttribute('data-start');
+        el.removeAttribute('data-end');
+      });
 
-      tempDiv.querySelectorAll('[data-start]').forEach(el => el.removeAttribute('data-start'));
-      tempDiv.querySelectorAll('[data-end]').forEach(el => el.removeAttribute('data-end'));
-
-      tempDiv.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(el => {
-        if (/[🌀-🫖☀-⛿]/u.test(el.textContent)) {
+      // Удаление заголовков с emoji
+      const emojiRegex = /[\u{1F300}-\u{1FAD6}\u{2600}-\u{26FF}\u{1F600}-\u{1F64F}]/u;
+      tempDiv.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(el => {
+        if (emojiRegex.test(el.textContent)) {
           el.remove();
         }
       });
 
+      // Показ результата
       document.getElementById("preview-pane").innerHTML = tempDiv.innerHTML;
       document.getElementById("preview-pane").style.display = 'block';
       document.getElementById("html-pane").style.display = 'none';
@@ -228,6 +225,20 @@
     }
 
     function runSymbolChecks(html) {
+      const symbolChecks = {
+        '—': 'Тире (—)',
+        '[«»]': 'Кавычки (« »)',
+        '[“”]': 'Кавычки (“ ”)',
+        '[→←]': 'Стрелки (→ ←)',
+        '\u00A0': 'Неразрывный пробел',
+        '’': 'Апостроф неправильный (’)',
+        '…': 'Многоточие (…) ',
+        ' ': 'Тонкая пауза',
+        '[©®]': 'Копирайт или Регистрация',
+        'data-start': 'Атрибут data-start',
+        'data-end': 'Атрибут data-end',
+        '[\u{1F300}-\u{1FAD6}\u{2600}-\u{26FF}\u{1F600}-\u{1F64F}]': 'Emoji в заголовках'
+      };
       let result = '<h3>Обнаруженные символы и конструкции:</h3><ul>';
       for (const pattern in symbolChecks) {
         const regex = new RegExp(pattern, 'gu');
