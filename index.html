@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML Analyzer Tool v0.23</title>
+  <title>HTML Analyzer Tool v0.24</title>
   <style>
     body {
       font-family: sans-serif;
@@ -51,7 +51,7 @@
       padding: 10px;
       margin-bottom: 10px;
     }
-    #preview-pane, #html-pane, #cleaned-html-pane {
+    #cleaned-html-pane {
       border: 1px solid #ccc;
       background: white;
       padding: 10px;
@@ -59,8 +59,6 @@
       width: 80%;
       max-width: 800px;
       display: none;
-    }
-    #html-pane, #cleaned-html-pane {
       font-family: monospace;
       background-color: #f4f4f4;
       overflow-x: auto;
@@ -74,57 +72,21 @@
       list-style: disc;
       padding-left: 20px;
     }
-    .replace-controls {
-      margin-top: 20px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-    }
-    .replace-controls input {
-      padding: 5px;
-      font-size: 14px;
-    }
-    .replace-controls button {
-      padding: 6px 12px;
-      font-weight: bold;
-      background-color: #28a745;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .replace-controls button:hover {
-      background-color: #1e7e34;
-    }
   </style>
 </head>
 <body>
   <h1>HTML Text Analyzer Tool</h1>
-  <div class="version">Version 0.23</div>
+  <div class="version">Version 0.24</div>
 
   <div id="editor" contenteditable="true" placeholder="Paste your text here..."></div>
 
   <div class="tabs">
-    <button onclick="showPreview()">Preview</button>
-    <button onclick="showHTML()">View HTML</button>
-    <button onclick="clearEditor()">Clear</button>
     <button onclick="autoClean()">Auto Clean</button>
-    <button onclick="copyCleaned()">Copy Cleaned</button>
     <button onclick="showCleanedHTML()">Cleaned HTML View</button>
-    <button onclick="copyCleanedHTML()">Copy Cleaned HTML</button>
     <button onclick="runSymbolCheckOnly()">Check Symbols</button>
+    <button onclick="clearEditor()">Clear</button>
   </div>
 
-  <div class="replace-controls">
-    <label>Заменить:</label>
-    <input type="text" id="findText" placeholder="Найти...">
-    <input type="text" id="replaceText" placeholder="Заменить на...">
-    <button onclick="replaceInEditor()">Заменить</button>
-  </div>
-
-  <div id="preview-pane"></div>
-  <pre id="html-pane"></pre>
   <pre id="cleaned-html-pane"></pre>
   <div class="results" id="symbol-check-results"></div>
 
@@ -135,6 +97,16 @@
       const editor = document.getElementById("editor");
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = editor.innerHTML;
+
+      const emojiRegex = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
+
+      tempDiv.querySelectorAll('*').forEach(el => {
+        el.removeAttribute('data-start');
+        el.removeAttribute('data-end');
+        el.removeAttribute('style');
+      });
+
+      tempDiv.querySelectorAll('br').forEach(br => br.remove());
 
       const walk = node => {
         if (node.nodeType === 3) {
@@ -157,99 +129,37 @@
       };
       walk(tempDiv);
 
-      tempDiv.querySelectorAll('*').forEach(el => {
-        el.removeAttribute('data-start');
-        el.removeAttribute('data-end');
-      });
-
-      const emojiRegex = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
       tempDiv.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(h => {
         h.innerHTML = h.innerHTML.replace(emojiRegex, '');
       });
 
-      const textOutput = tempDiv.innerText
-        .replace(/\n{2,}/g, '\n')
-        .replace(/\n\s+\n/g, '\n')
-        .replace(/^\s+|\s+$/g, '');
+      // Автоформатирование: каждая строка — новый блок
+      const lines = tempDiv.innerText.split(/\n+/).map(line => line.trim()).filter(Boolean);
+      const cleanedHTML = lines.map(line => {
+        if (/^(что дальше\?|например:|описание функций)/i.test(line)) return `<h2>${line}</h2>`;
+        if (/^(добро пожаловать|заключение)/i.test(line)) return `<h1>${line}</h1>`;
+        return `<p>${line}</p>`;
+      }).join('\n');
 
-      document.getElementById("preview-pane").innerText = textOutput;
-      document.getElementById("preview-pane").style.display = 'block';
-      document.getElementById("html-pane").style.display = 'none';
-      document.getElementById("cleaned-html-pane").style.display = 'none';
-
-      lastCleanedHTML = tempDiv.innerHTML;
-    }
-
-    function copyCleaned() {
-      const text = document.getElementById("preview-pane").innerText;
-      navigator.clipboard.writeText(text).then(() => {
-        alert("Очищенный текст скопирован.");
-      });
-    }
-
-    function copyCleanedHTML() {
-      navigator.clipboard.writeText(lastCleanedHTML).then(() => {
-        alert("Очищенный HTML скопирован.");
-      });
+      lastCleanedHTML = cleanedHTML;
+      showCleanedHTML();
     }
 
     function showCleanedHTML() {
-      document.getElementById("cleaned-html-pane").textContent = formatHTML(lastCleanedHTML);
+      document.getElementById("cleaned-html-pane").textContent = lastCleanedHTML;
       document.getElementById("cleaned-html-pane").style.display = 'block';
-      document.getElementById("preview-pane").style.display = 'none';
-      document.getElementById("html-pane").style.display = 'none';
-    }
-
-    function formatHTML(html) {
-      const tab = '  ';
-      let result = '', indent = '';
-      html.split(/\r?\n/).join('').replace(/>\s*</g, '><').split(/</).forEach((element) => {
-        if (element) {
-          if (element[0] === '/') {
-            indent = indent.substring(tab.length);
-          }
-          result += indent + '<' + element + '\n';
-          if (element[0] !== '/' && !element.includes('/>') && !element.includes('!') && !element.includes('input') && !element.includes('br') && !element.includes('hr')) {
-            indent += tab;
-          }
-        }
-      });
-      return result;
-    }
-
-    function showPreview() {
-      const content = document.getElementById("editor").innerHTML;
-      document.getElementById("preview-pane").innerHTML = content;
-      document.getElementById("preview-pane").style.display = 'block';
-      document.getElementById("html-pane").style.display = 'none';
-      document.getElementById("cleaned-html-pane").style.display = 'none';
       document.getElementById("symbol-check-results").innerHTML = '';
-    }
-
-    function showHTML() {
-      const content = document.getElementById("editor").innerHTML;
-      document.getElementById("html-pane").textContent = formatHTML(content);
-      document.getElementById("preview-pane").style.display = 'none';
-      document.getElementById("html-pane").style.display = 'block';
-      document.getElementById("cleaned-html-pane").style.display = 'none';
-      document.getElementById("symbol-check-results").innerHTML = '';
-    }
-
-    function runSymbolCheckOnly() {
-      const content = document.getElementById("editor").innerHTML;
-      runSymbolChecks(content);
     }
 
     function clearEditor() {
       document.getElementById("editor").innerHTML = "";
-      document.getElementById("preview-pane").innerHTML = "";
-      document.getElementById("html-pane").textContent = "";
       document.getElementById("cleaned-html-pane").textContent = "";
       document.getElementById("symbol-check-results").innerHTML = '';
       lastCleanedHTML = '';
     }
 
-    function runSymbolChecks(html) {
+    function runSymbolCheckOnly() {
+      const html = document.getElementById("editor").innerHTML;
       const symbolChecks = {
         '—': 'Тире (—)',
         '[«»]': 'Кавычки (« »)',
@@ -275,16 +185,6 @@
       }
       result += '</ul>';
       document.getElementById("symbol-check-results").innerHTML = result;
-    }
-
-    function replaceInEditor() {
-      const find = document.getElementById("findText").value;
-      const replace = document.getElementById("replaceText").value;
-      if (!find) return alert("Введите текст для поиска.");
-      const editor = document.getElementById("editor");
-      const regex = new RegExp(find, 'g');
-      editor.innerHTML = editor.innerHTML.replace(regex, replace);
-      alert("Заменено.");
     }
   </script>
 </body>
