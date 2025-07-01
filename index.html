@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML Analyzer Tool v0.20</title>
+  <title>HTML Analyzer Tool v0.21</title>
   <style>
     body {
       font-family: sans-serif;
@@ -101,7 +101,7 @@
 </head>
 <body>
   <h1>HTML Text Analyzer Tool</h1>
-  <div class="version">Version 0.20 (previous: 0.19)</div>
+  <div class="version">Version 0.21 (previous: 0.20)</div>
 
   <div id="editor" contenteditable="true" placeholder="Paste your text here..."></div>
 
@@ -131,7 +131,6 @@
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = editor.innerHTML;
 
-      // Очистка текстовых узлов
       const walk = node => {
         if (node.nodeType === 3) {
           node.nodeValue = node.nodeValue
@@ -143,34 +142,32 @@
             .replace(/’/g, "'")
             .replace(/…/g, '.')
             .replace(/ /g, '')
-            .replace(/[©®]/g, '');
-
-          // Доп. финальная нормализация пробелов
-          node.nodeValue = node.nodeValue
+            .replace(/[©®]/g, '')
             .replace(/ {2,}/g, ' ')
             .replace(/\.([\p{L}])/gu, '. $1')
             .replace(/ ([,.;!?])/g, '$1');
-
         } else if (node.nodeType === 1) {
           [...node.childNodes].forEach(walk);
         }
       };
       walk(tempDiv);
 
-      // Удаление data-атрибутов
       tempDiv.querySelectorAll('*').forEach(el => {
         el.removeAttribute('data-start');
         el.removeAttribute('data-end');
       });
 
-      // Удаление emoji в заголовках
       const emojiRegex = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
       tempDiv.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(h => {
         h.innerHTML = h.innerHTML.replace(emojiRegex, '');
       });
 
-      // Показ результата
-      document.getElementById("preview-pane").innerHTML = tempDiv.innerHTML;
+      const textOutput = tempDiv.innerText
+        .replace(/\n{2,}/g, '\n')
+        .replace(/\n\s+\n/g, '\n')
+        .replace(/^\s+|\s+$/g, '');
+
+      document.getElementById("preview-pane").innerText = textOutput;
       document.getElementById("preview-pane").style.display = 'block';
       document.getElementById("html-pane").style.display = 'none';
     }
