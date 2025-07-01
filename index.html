@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML Analyzer Tool v0.24</title>
+  <title>HTML Analyzer Tool v0.25</title>
   <style>
     body {
       font-family: sans-serif;
@@ -51,17 +51,20 @@
       padding: 10px;
       margin-bottom: 10px;
     }
-    #cleaned-html-pane {
+    #cleaned-html-pane, #rendered-pane {
       border: 1px solid #ccc;
       background: white;
       padding: 10px;
-      white-space: pre-wrap;
       width: 80%;
       max-width: 800px;
-      display: none;
       font-family: monospace;
       background-color: #f4f4f4;
       overflow-x: auto;
+      display: none;
+    }
+    #rendered-pane {
+      font-family: sans-serif;
+      background-color: white;
     }
     .results {
       margin-top: 20px;
@@ -72,22 +75,31 @@
       list-style: disc;
       padding-left: 20px;
     }
+    .toggle {
+      margin: 10px 0;
+      font-size: 0.95em;
+    }
   </style>
 </head>
 <body>
   <h1>HTML Text Analyzer Tool</h1>
-  <div class="version">Version 0.24</div>
+  <div class="version">Version 0.25</div>
 
   <div id="editor" contenteditable="true" placeholder="Paste your text here..."></div>
 
   <div class="tabs">
     <button onclick="autoClean()">Auto Clean</button>
-    <button onclick="showCleanedHTML()">Cleaned HTML View</button>
     <button onclick="runSymbolCheckOnly()">Check Symbols</button>
     <button onclick="clearEditor()">Clear</button>
   </div>
 
+  <div class="toggle">
+    <label><input type="checkbox" id="viewModeToggle" onchange="toggleViewMode()"> Визуальный просмотр</label>
+  </div>
+
   <pre id="cleaned-html-pane"></pre>
+  <div id="rendered-pane"></div>
+
   <div class="results" id="symbol-check-results"></div>
 
   <script>
@@ -133,7 +145,6 @@
         h.innerHTML = h.innerHTML.replace(emojiRegex, '');
       });
 
-      // Автоформатирование: каждая строка — новый блок
       const lines = tempDiv.innerText.split(/\n+/).map(line => line.trim()).filter(Boolean);
       const cleanedHTML = lines.map(line => {
         if (/^(что дальше\?|например:|описание функций)/i.test(line)) return `<h2>${line}</h2>`;
@@ -142,18 +153,29 @@
       }).join('\n');
 
       lastCleanedHTML = cleanedHTML;
-      showCleanedHTML();
+      showCleanedOutput();
     }
 
-    function showCleanedHTML() {
-      document.getElementById("cleaned-html-pane").textContent = lastCleanedHTML;
-      document.getElementById("cleaned-html-pane").style.display = 'block';
+    function showCleanedOutput() {
+      const viewToggle = document.getElementById("viewModeToggle").checked;
+      document.getElementById("cleaned-html-pane").style.display = viewToggle ? 'none' : 'block';
+      document.getElementById("rendered-pane").style.display = viewToggle ? 'block' : 'none';
+      if (viewToggle) {
+        document.getElementById("rendered-pane").innerHTML = lastCleanedHTML;
+      } else {
+        document.getElementById("cleaned-html-pane").textContent = lastCleanedHTML;
+      }
       document.getElementById("symbol-check-results").innerHTML = '';
+    }
+
+    function toggleViewMode() {
+      showCleanedOutput();
     }
 
     function clearEditor() {
       document.getElementById("editor").innerHTML = "";
       document.getElementById("cleaned-html-pane").textContent = "";
+      document.getElementById("rendered-pane").innerHTML = "";
       document.getElementById("symbol-check-results").innerHTML = '';
       lastCleanedHTML = '';
     }
