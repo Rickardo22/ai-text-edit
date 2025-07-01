@@ -3,237 +3,165 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML Analyzer Tool v0.28</title>
+  <title>HTML Cleaner Tool</title>
   <style>
     body {
       font-family: sans-serif;
-      padding: 20px;
-      background: #f9f9f9;
+      background: #f7f7f7;
+      margin: 0;
+      padding: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
     h1 {
-      font-size: 1.5em;
-      text-align: center;
+      margin: 20px 0 10px;
     }
-    .version {
-      font-size: 0.9em;
-      color: #888;
+    #version {
+      font-size: 14px;
+      color: #666;
       margin-bottom: 10px;
     }
-    .tabs {
-      margin-top: 10px;
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
+    .editor {
+      width: 90%;
+      max-width: 1000px;
+      height: 250px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: white;
+      overflow: auto;
+      white-space: pre-wrap;
     }
-    .tabs button {
-      margin: 5px;
-      padding: 10px 20px;
+    .button-group {
+      margin: 15px;
+      display: flex;
+      gap: 10px;
+    }
+    button {
       font-weight: bold;
-      background-color: #007bff;
-      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
       border: none;
-      border-radius: 4px;
+      background: #333;
+      color: white;
       cursor: pointer;
     }
-    .tabs button:hover {
-      background-color: #0056b3;
-    }
-    #editor {
-      border: 1px solid #ccc;
-      background: white;
-      height: 300px;
-      width: 80%;
-      max-width: 800px;
-      overflow-y: auto;
-      padding: 10px;
+    #outputToggle {
       margin-bottom: 10px;
     }
-    #cleaned-html-pane, #rendered-pane, #editable-html-pane {
-      border: 1px solid #ccc;
-      background: white;
+    #output {
+      width: 90%;
+      max-width: 1000px;
       padding: 10px;
-      width: 80%;
-      max-width: 800px;
-      font-family: monospace;
-      background-color: #f4f4f4;
-      overflow-x: auto;
-      display: none;
-    }
-    #rendered-pane {
-      font-family: sans-serif;
-      background-color: white;
-    }
-    #editable-html-pane {
-      background-color: #fff8e1;
-      min-height: 200px;
-    }
-    .results {
-      margin-top: 20px;
-      width: 80%;
-      max-width: 800px;
-    }
-    .results ul {
-      list-style: disc;
-      padding-left: 20px;
-    }
-    .toggle {
-      margin: 10px 0;
-      font-size: 0.95em;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: white;
+      white-space: pre-wrap;
+      overflow: auto;
     }
   </style>
 </head>
 <body>
-  <h1>HTML Text Analyzer Tool</h1>
-  <div class="version">Version 0.28</div>
+  <h1>HTML Cleaner Tool</h1>
+  <div id="version">Version 0.29</div>
+  <div contenteditable="true" id="input" class="editor" placeholder="Paste your content here..."></div>
 
-  <div id="editor" contenteditable="true" placeholder="Paste your text here..."></div>
-
-  <div class="tabs">
+  <div class="button-group">
     <button onclick="autoClean()">Auto Clean</button>
-    <button onclick="runSymbolCheckOnly()">Check Symbols</button>
-    <button onclick="clearEditor()">Clear</button>
+    <button onclick="checkSymbols()">Check Symbols</button>
   </div>
 
-  <div class="toggle">
-    <label><input type="checkbox" id="viewModeToggle" onchange="toggleViewMode()"> Визуальный просмотр</label>
-  </div>
-
-  <pre id="cleaned-html-pane"></pre>
-  <div id="rendered-pane"></div>
-  <div id="editable-html-pane" contenteditable="true"></div>
-
-  <div class="results" id="symbol-check-results"></div>
+  <label><input type="checkbox" id="visualToggle" onchange="toggleView()"> Визуальный просмотр</label>
+  <div id="output" class="editor"></div>
 
   <script>
-    let lastCleanedHTML = '';
+    function toggleView() {
+      const output = document.getElementById('output');
+      if (document.getElementById('visualToggle').checked) {
+        output.innerHTML = output.textContent;
+      } else {
+        output.textContent = output.innerHTML;
+      }
+    }
 
     function autoClean() {
-      const editor = document.getElementById("editor");
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = editor.innerHTML;
+      const input = document.getElementById('input');
+      let html = input.innerHTML;
 
-      const emojiRegex = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
+      // Remove attributes
+      html = html.replace(/\sdata-start="[^"]*"/g, '')
+                 .replace(/\sdata-end="[^"]*"/g, '');
 
-      tempDiv.querySelectorAll('*').forEach(el => {
-        el.removeAttribute('data-start');
-        el.removeAttribute('data-end');
-        el.removeAttribute('style');
+      // Replace symbols
+      html = html
+        .replace(/&mdash;|—/g, '-')
+        .replace(/&laquo;|&raquo;|«|»/g, '"')
+        .replace(/&ldquo;|&rdquo;|“|”/g, '"')
+        .replace(/&rsquo;|’/g, "'")
+        .replace(/&hellip;|…/g, '.')
+        .replace(/&nbsp;|\u00a0/g, ' ')
+        .replace(/&thinsp;|\u2009/g, '')
+        .replace(/&copy;|©|&reg;|®/g, '')
+        .replace(/[→←]/g, '')
+        .replace(/\s{2,}/g, ' ');
+
+      // Remove emoji in headings
+      html = html.replace(/<h[1-6][^>]*>[^<]*?[\u203C-\u3299\uD83C-\uDBFF\uDC00-\uDFFF]+[^<]*<\/h[1-6]>/g, (match) => {
+        return match.replace(/[\u203C-\u3299\uD83C-\uDBFF\uDC00-\uDFFF]/g, '');
       });
 
-      tempDiv.querySelectorAll('br').forEach(br => br.remove());
+      // Merge table rows into one table
+      const rows = html.match(/<table><tr><td>.*?<\/td><\/tr><\/table>/g);
+      if (rows) {
+        const table = '<table>' + rows.map(r => r.replace(/<\/?table>/g, '')).join('') + '</table>';
+        html = html.replace(/<table><tr><td>.*?<\/td><\/tr><\/table>/g, '');
+        html += table;
+      }
 
-      const walk = node => {
-        if (node.nodeType === 3) {
-          node.nodeValue = node.nodeValue
-            .replace(/—/g, '-')
-            .replace(/[«»]/g, '"')
-            .replace(/[“”]/g, '"')
-            .replace(/[→←]/g, '')
-            .replace(/\u00A0/g, ' ')
-            .replace(/’/g, "'")
-            .replace(/…/g, '.')
-            .replace(/ /g, '')
-            .replace(/[©®]/g, '')
-            .replace(/ {2,}/g, ' ')
-            .replace(/\.([\p{L}])/gu, '. $1')
-            .replace(/ ([,.;!?])/g, '$1');
-        } else if (node.nodeType === 1) {
-          [...node.childNodes].forEach(walk);
-        }
-      };
-      walk(tempDiv);
-
-      tempDiv.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(h => {
-        h.innerHTML = h.innerHTML.replace(emojiRegex, '');
-      });
-
-      const lines = tempDiv.innerText.split(/\n+/).map(line => line.trim()).filter(Boolean);
-      let insideTable = false;
-      let tableRows = [];
-      const cleanedBlocks = [];
-
-      lines.forEach((line, i) => {
-        if (line.includes('|') && line.split('|').length >= 3) {
-          const cells = line.split('|').map(cell => `<td>${cell.trim()}</td>`).join('');
-          tableRows.push(`<tr>${cells}</tr>`);
-          insideTable = true;
-        } else {
-          if (insideTable && tableRows.length > 0) {
-            cleanedBlocks.push(`<table>${tableRows.join('')}</table>`);
-            tableRows = [];
-            insideTable = false;
+      // Detect visually styled headers
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      tempDiv.querySelectorAll('span').forEach(span => {
+        const style = span.style;
+        if ((style.fontWeight === 'bold' || style.fontWeight >= 600 || style.fontSize.replace('px','') >= 18)) {
+          const parent = span.closest('p,div');
+          if (parent) {
+            const h2 = document.createElement('h2');
+            h2.textContent = span.textContent.trim();
+            parent.replaceWith(h2);
           }
-          if (/^(что дальше\?|например:|описание функций|сравнительная таблица)/i.test(line)) cleanedBlocks.push(`<h2>${line}</h2>`);
-          else if (/^(добро пожаловать|заключение)/i.test(line)) cleanedBlocks.push(`<h1>${line}</h1>`);
-          else cleanedBlocks.push(`<p>${line}</p>`);
         }
       });
+      html = tempDiv.innerHTML;
 
-      if (tableRows.length > 0) {
-        cleanedBlocks.push(`<table>${tableRows.join('')}</table>`);
+      document.getElementById('output').innerHTML = html;
+      if (!document.getElementById('visualToggle').checked) {
+        document.getElementById('output').textContent = html;
       }
-
-      lastCleanedHTML = cleanedBlocks.join('\n');
-      showCleanedOutput();
     }
 
-    function showCleanedOutput() {
-      const viewToggle = document.getElementById("viewModeToggle").checked;
-      document.getElementById("cleaned-html-pane").style.display = viewToggle ? 'none' : 'block';
-      document.getElementById("rendered-pane").style.display = viewToggle ? 'block' : 'none';
-      document.getElementById("editable-html-pane").style.display = 'block';
-      if (viewToggle) {
-        document.getElementById("rendered-pane").innerHTML = lastCleanedHTML;
-      } else {
-        document.getElementById("cleaned-html-pane").textContent = lastCleanedHTML;
-      }
-      document.getElementById("editable-html-pane").innerText = lastCleanedHTML;
-      document.getElementById("symbol-check-results").innerHTML = '';
-    }
-
-    function toggleViewMode() {
-      showCleanedOutput();
-    }
-
-    function clearEditor() {
-      document.getElementById("editor").innerHTML = "";
-      document.getElementById("cleaned-html-pane").textContent = "";
-      document.getElementById("rendered-pane").innerHTML = "";
-      document.getElementById("editable-html-pane").innerText = "";
-      document.getElementById("symbol-check-results").innerHTML = '';
-      lastCleanedHTML = '';
-    }
-
-    function runSymbolCheckOnly() {
-      const html = document.getElementById("editor").innerHTML;
-      const symbolChecks = {
-        '—': 'Тире (—)',
-        '[«»]': 'Кавычки (« »)',
-        '[“”]': 'Кавычки (“ ”)',
-        '[→←]': 'Стрелки (→ ←)',
-        '\u00A0': 'Неразрывный пробел',
-        '’': 'Апостроф неправильный (’)',
-        '…': 'Многоточие (…) ',
-        ' ': 'Тонкая пауза',
-        '[©®]': 'Копирайт или Регистрация',
-        'data-start': 'Атрибут data-start',
-        'data-end': 'Атрибут data-end',
-        '[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]': 'Emoji в заголовках'
+    function checkSymbols() {
+      const input = document.getElementById('input').innerHTML;
+      const symbols = {
+        'Тире (—)': /—/g,
+        'Кавычки (« »)': /«|»/g,
+        'Кавычки (“ ”)': /“|”/g,
+        'Апостроф (’)': /’/g,
+        'Многоточие (…)': /…/g,
+        'Неразрывный пробел': /\u00a0/g,
+        'Тонкая пауза': /\u2009/g,
+        'Копирайт/Регистрация': /©|®/g,
+        'Стрелки': /→|←/g,
+        'data-start': /data-start/g,
+        'data-end': /data-end/g,
+        'Emoji': /[\u203C-\u3299\uD83C-\uDBFF\uDC00-\uDFFF]/g
       };
-      let result = '<h3>Обнаруженные символы и конструкции:</h3><ul>';
-      for (const pattern in symbolChecks) {
-        const regex = new RegExp(pattern, 'gu');
-        if (regex.test(html)) {
-          result += `<li><b>${symbolChecks[pattern]}</b>: <span style='color:green;'>Найдено</span></li>`;
-        } else {
-          result += `<li><b>${symbolChecks[pattern]}</b>: <span style='color:red;'>Не найдено</span></li>`;
-        }
+      let result = 'Проверка символов:\n';
+      for (let key in symbols) {
+        result += `${key}: ${symbols[key].test(input) ? 'НАЙДЕНО' : 'OK'}\n`;
       }
-      result += '</ul>';
-      document.getElementById("symbol-check-results").innerHTML = result;
+      alert(result);
     }
   </script>
 </body>
