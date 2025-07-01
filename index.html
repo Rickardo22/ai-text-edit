@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML Analyzer Tool v0.18</title>
+  <title>HTML Analyzer Tool v0.20</title>
   <style>
     body {
       font-family: sans-serif;
@@ -101,7 +101,7 @@
 </head>
 <body>
   <h1>HTML Text Analyzer Tool</h1>
-  <div class="version">Version 0.18 (previous: 0.17)</div>
+  <div class="version">Version 0.20 (previous: 0.19)</div>
 
   <div id="editor" contenteditable="true" placeholder="Paste your text here..."></div>
 
@@ -131,9 +131,9 @@
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = editor.innerHTML;
 
-      // Замена спецсимволов
+      // Очистка текстовых узлов
       const walk = node => {
-        if (node.nodeType === 3) { // text node
+        if (node.nodeType === 3) {
           node.nodeValue = node.nodeValue
             .replace(/—/g, '-')
             .replace(/[«»]/g, '"')
@@ -144,24 +144,29 @@
             .replace(/…/g, '.')
             .replace(/ /g, '')
             .replace(/[©®]/g, '');
-        } else if (node.nodeType === 1) { // element node
+
+          // Доп. финальная нормализация пробелов
+          node.nodeValue = node.nodeValue
+            .replace(/ {2,}/g, ' ')
+            .replace(/\.([\p{L}])/gu, '. $1')
+            .replace(/ ([,.;!?])/g, '$1');
+
+        } else if (node.nodeType === 1) {
           [...node.childNodes].forEach(walk);
         }
       };
       walk(tempDiv);
 
       // Удаление data-атрибутов
-      tempDiv.querySelectorAll('[data-start], [data-end]').forEach(el => {
+      tempDiv.querySelectorAll('*').forEach(el => {
         el.removeAttribute('data-start');
         el.removeAttribute('data-end');
       });
 
-      // Удаление заголовков с emoji
-      const emojiRegex = /[\u{1F300}-\u{1FAD6}\u{2600}-\u{26FF}\u{1F600}-\u{1F64F}]/u;
-      tempDiv.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(el => {
-        if (emojiRegex.test(el.textContent)) {
-          el.remove();
-        }
+      // Удаление emoji в заголовках
+      const emojiRegex = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
+      tempDiv.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(h => {
+        h.innerHTML = h.innerHTML.replace(emojiRegex, '');
       });
 
       // Показ результата
@@ -179,14 +184,14 @@
 
     function formatHTML(html) {
       const tab = '  ';
-      let result = '', indent= '';
-      html.split(/\r?\n/).join('').replace(/>\s*</g,'><').split(/</).forEach((element) => {
-        if(element){
-          if(element[0] === '/'){
+      let result = '', indent = '';
+      html.split(/\r?\n/).join('').replace(/>\s*</g, '><').split(/</).forEach((element) => {
+        if (element) {
+          if (element[0] === '/') {
             indent = indent.substring(tab.length);
           }
           result += indent + '<' + element + '\n';
-          if(element[0] !== '/' && !element.includes('/>') && !element.includes('!') && !element.includes('input') && !element.includes('br') && !element.includes('hr')){
+          if (element[0] !== '/' && !element.includes('/>') && !element.includes('!') && !element.includes('input') && !element.includes('br') && !element.includes('hr')) {
             indent += tab;
           }
         }
@@ -237,7 +242,7 @@
         '[©®]': 'Копирайт или Регистрация',
         'data-start': 'Атрибут data-start',
         'data-end': 'Атрибут data-end',
-        '[\u{1F300}-\u{1FAD6}\u{2600}-\u{26FF}\u{1F600}-\u{1F64F}]': 'Emoji в заголовках'
+        '[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]': 'Emoji в заголовках'
       };
       let result = '<h3>Обнаруженные символы и конструкции:</h3><ul>';
       for (const pattern in symbolChecks) {
