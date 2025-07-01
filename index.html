@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML Analyzer Tool v0.22</title>
+  <title>HTML Analyzer Tool v0.23</title>
   <style>
     body {
       font-family: sans-serif;
@@ -51,7 +51,7 @@
       padding: 10px;
       margin-bottom: 10px;
     }
-    #preview-pane, #html-pane {
+    #preview-pane, #html-pane, #cleaned-html-pane {
       border: 1px solid #ccc;
       background: white;
       padding: 10px;
@@ -60,7 +60,7 @@
       max-width: 800px;
       display: none;
     }
-    #html-pane {
+    #html-pane, #cleaned-html-pane {
       font-family: monospace;
       background-color: #f4f4f4;
       overflow-x: auto;
@@ -101,7 +101,7 @@
 </head>
 <body>
   <h1>HTML Text Analyzer Tool</h1>
-  <div class="version">Version 0.22</div>
+  <div class="version">Version 0.23</div>
 
   <div id="editor" contenteditable="true" placeholder="Paste your text here..."></div>
 
@@ -111,6 +111,8 @@
     <button onclick="clearEditor()">Clear</button>
     <button onclick="autoClean()">Auto Clean</button>
     <button onclick="copyCleaned()">Copy Cleaned</button>
+    <button onclick="showCleanedHTML()">Cleaned HTML View</button>
+    <button onclick="copyCleanedHTML()">Copy Cleaned HTML</button>
     <button onclick="runSymbolCheckOnly()">Check Symbols</button>
   </div>
 
@@ -123,9 +125,12 @@
 
   <div id="preview-pane"></div>
   <pre id="html-pane"></pre>
+  <pre id="cleaned-html-pane"></pre>
   <div class="results" id="symbol-check-results"></div>
 
   <script>
+    let lastCleanedHTML = '';
+
     function autoClean() {
       const editor = document.getElementById("editor");
       const tempDiv = document.createElement("div");
@@ -170,6 +175,9 @@
       document.getElementById("preview-pane").innerText = textOutput;
       document.getElementById("preview-pane").style.display = 'block';
       document.getElementById("html-pane").style.display = 'none';
+      document.getElementById("cleaned-html-pane").style.display = 'none';
+
+      lastCleanedHTML = tempDiv.innerHTML;
     }
 
     function copyCleaned() {
@@ -177,6 +185,19 @@
       navigator.clipboard.writeText(text).then(() => {
         alert("Очищенный текст скопирован.");
       });
+    }
+
+    function copyCleanedHTML() {
+      navigator.clipboard.writeText(lastCleanedHTML).then(() => {
+        alert("Очищенный HTML скопирован.");
+      });
+    }
+
+    function showCleanedHTML() {
+      document.getElementById("cleaned-html-pane").textContent = formatHTML(lastCleanedHTML);
+      document.getElementById("cleaned-html-pane").style.display = 'block';
+      document.getElementById("preview-pane").style.display = 'none';
+      document.getElementById("html-pane").style.display = 'none';
     }
 
     function formatHTML(html) {
@@ -201,6 +222,7 @@
       document.getElementById("preview-pane").innerHTML = content;
       document.getElementById("preview-pane").style.display = 'block';
       document.getElementById("html-pane").style.display = 'none';
+      document.getElementById("cleaned-html-pane").style.display = 'none';
       document.getElementById("symbol-check-results").innerHTML = '';
     }
 
@@ -209,6 +231,7 @@
       document.getElementById("html-pane").textContent = formatHTML(content);
       document.getElementById("preview-pane").style.display = 'none';
       document.getElementById("html-pane").style.display = 'block';
+      document.getElementById("cleaned-html-pane").style.display = 'none';
       document.getElementById("symbol-check-results").innerHTML = '';
     }
 
@@ -221,7 +244,9 @@
       document.getElementById("editor").innerHTML = "";
       document.getElementById("preview-pane").innerHTML = "";
       document.getElementById("html-pane").textContent = "";
+      document.getElementById("cleaned-html-pane").textContent = "";
       document.getElementById("symbol-check-results").innerHTML = '';
+      lastCleanedHTML = '';
     }
 
     function runSymbolChecks(html) {
