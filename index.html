@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML Analyzer Tool v0.27</title>
+  <title>HTML Analyzer Tool v0.28</title>
   <style>
     body {
       font-family: sans-serif;
@@ -87,7 +87,7 @@
 </head>
 <body>
   <h1>HTML Text Analyzer Tool</h1>
-  <div class="version">Version 0.27</div>
+  <div class="version">Version 0.28</div>
 
   <div id="editor" contenteditable="true" placeholder="Paste your text here..."></div>
 
@@ -151,15 +151,32 @@
       });
 
       const lines = tempDiv.innerText.split(/\n+/).map(line => line.trim()).filter(Boolean);
-      const cleanedHTML = lines.map(line => {
-        if (line.includes('|') && line.split('|').length >= 3) {
-          return '<table><tr>' + line.split('|').map(cell => `<td>${cell.trim()}</td>`).join('') + '</tr></table>';
-        } else if (/^(что дальше\?|например:|описание функций)/i.test(line)) return `<h2>${line}</h2>`;
-        else if (/^(добро пожаловать|заключение)/i.test(line)) return `<h1>${line}</h1>`;
-        return `<p>${line}</p>`;
-      }).join('\n');
+      let insideTable = false;
+      let tableRows = [];
+      const cleanedBlocks = [];
 
-      lastCleanedHTML = cleanedHTML;
+      lines.forEach((line, i) => {
+        if (line.includes('|') && line.split('|').length >= 3) {
+          const cells = line.split('|').map(cell => `<td>${cell.trim()}</td>`).join('');
+          tableRows.push(`<tr>${cells}</tr>`);
+          insideTable = true;
+        } else {
+          if (insideTable && tableRows.length > 0) {
+            cleanedBlocks.push(`<table>${tableRows.join('')}</table>`);
+            tableRows = [];
+            insideTable = false;
+          }
+          if (/^(что дальше\?|например:|описание функций|сравнительная таблица)/i.test(line)) cleanedBlocks.push(`<h2>${line}</h2>`);
+          else if (/^(добро пожаловать|заключение)/i.test(line)) cleanedBlocks.push(`<h1>${line}</h1>`);
+          else cleanedBlocks.push(`<p>${line}</p>`);
+        }
+      });
+
+      if (tableRows.length > 0) {
+        cleanedBlocks.push(`<table>${tableRows.join('')}</table>`);
+      }
+
+      lastCleanedHTML = cleanedBlocks.join('\n');
       showCleanedOutput();
     }
 
