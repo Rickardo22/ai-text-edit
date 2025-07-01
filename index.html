@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML Analyzer Tool v0.21</title>
+  <title>HTML Analyzer Tool v0.22</title>
   <style>
     body {
       font-family: sans-serif;
@@ -101,7 +101,7 @@
 </head>
 <body>
   <h1>HTML Text Analyzer Tool</h1>
-  <div class="version">Version 0.21 (previous: 0.20)</div>
+  <div class="version">Version 0.22</div>
 
   <div id="editor" contenteditable="true" placeholder="Paste your text here..."></div>
 
@@ -109,9 +109,9 @@
     <button onclick="showPreview()">Preview</button>
     <button onclick="showHTML()">View HTML</button>
     <button onclick="clearEditor()">Clear</button>
-    <button onclick="copyHTML()">Copy HTML</button>
     <button onclick="autoClean()">Auto Clean</button>
     <button onclick="copyCleaned()">Copy Cleaned</button>
+    <button onclick="runSymbolCheckOnly()">Check Symbols</button>
   </div>
 
   <div class="replace-controls">
@@ -209,6 +209,11 @@
       document.getElementById("html-pane").textContent = formatHTML(content);
       document.getElementById("preview-pane").style.display = 'none';
       document.getElementById("html-pane").style.display = 'block';
+      document.getElementById("symbol-check-results").innerHTML = '';
+    }
+
+    function runSymbolCheckOnly() {
+      const content = document.getElementById("editor").innerHTML;
       runSymbolChecks(content);
     }
 
@@ -217,13 +222,6 @@
       document.getElementById("preview-pane").innerHTML = "";
       document.getElementById("html-pane").textContent = "";
       document.getElementById("symbol-check-results").innerHTML = '';
-    }
-
-    function copyHTML() {
-      const html = document.getElementById("html-pane").textContent;
-      navigator.clipboard.writeText(html).then(() => {
-        alert("HTML copied to clipboard");
-      });
     }
 
     function runSymbolChecks(html) {
