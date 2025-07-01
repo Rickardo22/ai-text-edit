@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML Analyzer Tool v0.25</title>
+  <title>HTML Analyzer Tool v0.27</title>
   <style>
     body {
       font-family: sans-serif;
@@ -51,7 +51,7 @@
       padding: 10px;
       margin-bottom: 10px;
     }
-    #cleaned-html-pane, #rendered-pane {
+    #cleaned-html-pane, #rendered-pane, #editable-html-pane {
       border: 1px solid #ccc;
       background: white;
       padding: 10px;
@@ -65,6 +65,10 @@
     #rendered-pane {
       font-family: sans-serif;
       background-color: white;
+    }
+    #editable-html-pane {
+      background-color: #fff8e1;
+      min-height: 200px;
     }
     .results {
       margin-top: 20px;
@@ -83,7 +87,7 @@
 </head>
 <body>
   <h1>HTML Text Analyzer Tool</h1>
-  <div class="version">Version 0.25</div>
+  <div class="version">Version 0.27</div>
 
   <div id="editor" contenteditable="true" placeholder="Paste your text here..."></div>
 
@@ -99,6 +103,7 @@
 
   <pre id="cleaned-html-pane"></pre>
   <div id="rendered-pane"></div>
+  <div id="editable-html-pane" contenteditable="true"></div>
 
   <div class="results" id="symbol-check-results"></div>
 
@@ -147,8 +152,10 @@
 
       const lines = tempDiv.innerText.split(/\n+/).map(line => line.trim()).filter(Boolean);
       const cleanedHTML = lines.map(line => {
-        if (/^(что дальше\?|например:|описание функций)/i.test(line)) return `<h2>${line}</h2>`;
-        if (/^(добро пожаловать|заключение)/i.test(line)) return `<h1>${line}</h1>`;
+        if (line.includes('|') && line.split('|').length >= 3) {
+          return '<table><tr>' + line.split('|').map(cell => `<td>${cell.trim()}</td>`).join('') + '</tr></table>';
+        } else if (/^(что дальше\?|например:|описание функций)/i.test(line)) return `<h2>${line}</h2>`;
+        else if (/^(добро пожаловать|заключение)/i.test(line)) return `<h1>${line}</h1>`;
         return `<p>${line}</p>`;
       }).join('\n');
 
@@ -160,11 +167,13 @@
       const viewToggle = document.getElementById("viewModeToggle").checked;
       document.getElementById("cleaned-html-pane").style.display = viewToggle ? 'none' : 'block';
       document.getElementById("rendered-pane").style.display = viewToggle ? 'block' : 'none';
+      document.getElementById("editable-html-pane").style.display = 'block';
       if (viewToggle) {
         document.getElementById("rendered-pane").innerHTML = lastCleanedHTML;
       } else {
         document.getElementById("cleaned-html-pane").textContent = lastCleanedHTML;
       }
+      document.getElementById("editable-html-pane").innerText = lastCleanedHTML;
       document.getElementById("symbol-check-results").innerHTML = '';
     }
 
@@ -176,6 +185,7 @@
       document.getElementById("editor").innerHTML = "";
       document.getElementById("cleaned-html-pane").textContent = "";
       document.getElementById("rendered-pane").innerHTML = "";
+      document.getElementById("editable-html-pane").innerText = "";
       document.getElementById("symbol-check-results").innerHTML = '';
       lastCleanedHTML = '';
     }
