@@ -65,7 +65,7 @@
 </head>
 <body>
   <h1>HTML Cleaner Tool</h1>
-  <div id="version">Version 0.30</div>
+  <div id="version">Version 0.31</div>
   <div contenteditable="true" id="input" class="editor" placeholder="Paste your content here..."></div>
 
   <div class="button-group">
@@ -119,17 +119,34 @@
 
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
-      tempDiv.querySelectorAll('span').forEach(span => {
-        const style = span.style;
-        if ((style.fontWeight === 'bold' || style.fontWeight >= 600 || style.fontSize.replace('px','') >= 18)) {
-          const parent = span.closest('p,div');
-          if (parent) {
-            const h2 = document.createElement('h2');
-            h2.textContent = span.textContent.trim();
-            parent.replaceWith(h2);
+      tempDiv.querySelectorAll('div, p').forEach(block => {
+        const spans = block.querySelectorAll('span');
+        if (spans.length > 0) {
+          const first = spans[0];
+          const style = first.style;
+          const isHeader = style.fontWeight === 'bold' || parseInt(style.fontWeight) >= 600 || parseInt(style.fontSize) >= 16;
+          if (isHeader) {
+            const h = document.createElement('h3');
+            h.innerHTML = first.innerHTML;
+            block.parentNode.insertBefore(h, block);
+            first.remove();
           }
+
+          let rest = '';
+          spans.forEach((s, i) => {
+            if (i > 0 || !isHeader) {
+              rest += s.textContent + ' ';
+            }
+          });
+          if (rest.trim().length > 0) {
+            const p = document.createElement('p');
+            p.textContent = rest.trim();
+            block.parentNode.insertBefore(p, block.nextSibling);
+          }
+          block.remove();
         }
       });
+
       html = tempDiv.innerHTML;
 
       document.getElementById('output').innerHTML = html;
