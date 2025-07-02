@@ -36,6 +36,7 @@
     .button-group {
       margin: 15px;
       display: flex;
+      flex-wrap: wrap;
       gap: 10px;
     }
     button {
@@ -64,12 +65,13 @@
 </head>
 <body>
   <h1>HTML Cleaner Tool</h1>
-  <div id="version">Version 0.29</div>
+  <div id="version">Version 0.30</div>
   <div contenteditable="true" id="input" class="editor" placeholder="Paste your content here..."></div>
 
   <div class="button-group">
     <button onclick="autoClean()">Auto Clean</button>
     <button onclick="checkSymbols()">Check Symbols</button>
+    <button onclick="clearFields()">Clear All</button>
   </div>
 
   <label><input type="checkbox" id="visualToggle" onchange="toggleView()"> Визуальный просмотр</label>
@@ -89,11 +91,9 @@
       const input = document.getElementById('input');
       let html = input.innerHTML;
 
-      // Remove attributes
       html = html.replace(/\sdata-start="[^"]*"/g, '')
                  .replace(/\sdata-end="[^"]*"/g, '');
 
-      // Replace symbols
       html = html
         .replace(/&mdash;|—/g, '-')
         .replace(/&laquo;|&raquo;|«|»/g, '"')
@@ -106,12 +106,10 @@
         .replace(/[→←]/g, '')
         .replace(/\s{2,}/g, ' ');
 
-      // Remove emoji in headings
       html = html.replace(/<h[1-6][^>]*>[^<]*?[\u203C-\u3299\uD83C-\uDBFF\uDC00-\uDFFF]+[^<]*<\/h[1-6]>/g, (match) => {
         return match.replace(/[\u203C-\u3299\uD83C-\uDBFF\uDC00-\uDFFF]/g, '');
       });
 
-      // Merge table rows into one table
       const rows = html.match(/<table><tr><td>.*?<\/td><\/tr><\/table>/g);
       if (rows) {
         const table = '<table>' + rows.map(r => r.replace(/<\/?table>/g, '')).join('') + '</table>';
@@ -119,7 +117,6 @@
         html += table;
       }
 
-      // Detect visually styled headers
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
       tempDiv.querySelectorAll('span').forEach(span => {
@@ -159,9 +156,21 @@
       };
       let result = 'Проверка символов:\n';
       for (let key in symbols) {
-        result += `${key}: ${symbols[key].test(input) ? 'НАЙДЕНО' : 'OK'}\n`;
+        const matches = input.match(symbols[key]);
+        result += `${key}: ${matches ? 'НАЙДЕНО (' + matches.length + ')' : 'OK'}\n`;
       }
+
+      const plainText = document.getElementById('input').innerText;
+      const words = plainText.trim().split(/\s+/).filter(Boolean).length;
+      const chars = plainText.replace(/\s/g, '').length;
+      result += `\nСлов: ${words}\nСимволов (без пробелов): ${chars}`;
+
       alert(result);
+    }
+
+    function clearFields() {
+      document.getElementById('input').innerHTML = '';
+      document.getElementById('output').innerHTML = '';
     }
   </script>
 </body>
