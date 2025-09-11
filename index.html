@@ -71,8 +71,8 @@
   <div class="button-group">
     <button onclick="autoClean()">Auto Clean</button>
     <button onclick="checkSymbols()">Check Symbols</button>
-    <button onclick="copyCleanedText()">Copy Cleaned Text</button>
     <button onclick="clearFields()">Clear All</button>
+    <button onclick="copyCleanedText()">Copy Cleaned Text</button>
   </div>
 
   <label><input type="checkbox" id="visualToggle" onchange="toggleView()"> Визуальный просмотр</label>
@@ -186,21 +186,23 @@
       alert(result);
     }
 
-    function copyCleanedText() {
-      const output = document.getElementById('visualToggle').checked
-        ? document.getElementById('output').innerText
-        : document.getElementById('output').textContent;
-
-      navigator.clipboard.writeText(output).then(() => {
-        alert("Cleaned text copied to clipboard!");
-      }).catch(err => {
-        alert("Failed to copy text.");
-      });
-    }
-
     function clearFields() {
       document.getElementById('input').innerHTML = '';
       document.getElementById('output').innerHTML = '';
+    }
+
+    function copyCleanedText() {
+      const output = document.getElementById('output');
+      const html = output.innerHTML;
+
+      const blob = new Blob([html], { type: 'text/html' });
+      const data = [new ClipboardItem({ 'text/html': blob })];
+
+      navigator.clipboard.write(data).then(() => {
+        alert("Formatted HTML copied to clipboard!");
+      }).catch(err => {
+        alert("Failed to copy HTML.");
+      });
     }
   </script>
 </body>
