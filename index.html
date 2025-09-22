@@ -65,14 +65,14 @@
 </head>
 <body>
   <h1>HTML Cleaner Tool</h1>
-  <div id="version">Version 0.32</div>
+  <div id="version">Version 0.35</div>
   <div contenteditable="true" id="input" class="editor" placeholder="Paste your content here..."></div>
 
   <div class="button-group">
     <button onclick="autoClean()">Auto Clean</button>
     <button onclick="checkSymbols()">Check Symbols</button>
-    <button onclick="copyOutput()">Copy Cleaned HTML</button>
     <button onclick="clearFields()">Clear All</button>
+    <button onclick="copyOutput()">Copy Cleaned</button>
   </div>
 
   <label><input type="checkbox" id="visualToggle" onchange="toggleView()"> Визуальный просмотр</label>
@@ -107,9 +107,9 @@
         .replace(/[→←]/g, '')
         .replace(/\s{2,}/g, ' ');
 
-      html = html.replace(/<h[1-6][^>]*>[^<]*?[\u203C-\u3299\uD83C-\uDBFF\uDC00-\uDFFF]+[^<]*<\/h[1-6]>/g, (match) => {
-        return match.replace(/[\u203C-\u3299\uD83C-\uDBFF\uDC00-\uDFFF]/g, '');
-      });
+      html = html.replace(/<h[1-6][^>]*>[^<]*?[\u203C-\u3299\uD83C-\uDBFF\uDC00-\uDFFF]+[^<]*<\/h[1-6]>/g, match => match.replace(/[\u203C-\u3299\uD83C-\uDBFF\uDC00-\uDFFF]/g, ''));
+
+      html = html.replace(/<a [^>]*class="[^"]*decorated-link[^"]*"[^>]*>(.*?)<span[^>]*><svg[\s\S]*?<\/svg><\/span><\/a>/g, '$1');
 
       const rows = html.match(/<table><tr><td>.*?<\/td><\/tr><\/table>/g);
       if (rows) {
@@ -120,7 +120,6 @@
 
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
-
       tempDiv.querySelectorAll('div, p').forEach(block => {
         const spans = block.querySelectorAll('span');
         if (spans.length > 0) {
@@ -142,7 +141,7 @@
           });
           if (rest.trim().length > 0) {
             const p = document.createElement('p');
-            p.innerHTML = rest.trim();
+            p.textContent = rest.trim();
             block.parentNode.insertBefore(p, block.nextSibling);
           }
           block.remove();
@@ -194,18 +193,18 @@
 
     function copyOutput() {
       const output = document.getElementById('output');
+      const selection = window.getSelection();
       const range = document.createRange();
       range.selectNodeContents(output);
-      const selection = window.getSelection();
       selection.removeAllRanges();
       selection.addRange(range);
       try {
         document.execCommand('copy');
-        alert('Скопировано с форматированием!');
-      } catch (err) {
-        alert('Ошибка копирования');
+        selection.removeAllRanges();
+        alert('Скопировано с форматированием.');
+      } catch (e) {
+        alert('Ошибка при копировании.');
       }
-      selection.removeAllRanges();
     }
   </script>
 </body>
