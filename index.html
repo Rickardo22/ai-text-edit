@@ -71,8 +71,8 @@
   <div class="button-group">
     <button onclick="autoClean()">Auto Clean</button>
     <button onclick="checkSymbols()">Check Symbols</button>
+    <button onclick="copyOutput()">Copy Cleaned HTML</button>
     <button onclick="clearFields()">Clear All</button>
-    <button onclick="copyCleanedText()">Copy Cleaned Text</button>
   </div>
 
   <label><input type="checkbox" id="visualToggle" onchange="toggleView()"> Визуальный просмотр</label>
@@ -120,6 +120,7 @@
 
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
+
       tempDiv.querySelectorAll('div, p').forEach(block => {
         const spans = block.querySelectorAll('span');
         if (spans.length > 0) {
@@ -141,7 +142,7 @@
           });
           if (rest.trim().length > 0) {
             const p = document.createElement('p');
-            p.textContent = rest.trim();
+            p.innerHTML = rest.trim();
             block.parentNode.insertBefore(p, block.nextSibling);
           }
           block.remove();
@@ -191,18 +192,20 @@
       document.getElementById('output').innerHTML = '';
     }
 
-    function copyCleanedText() {
+    function copyOutput() {
       const output = document.getElementById('output');
-      const html = output.innerHTML;
-
-      const blob = new Blob([html], { type: 'text/html' });
-      const data = [new ClipboardItem({ 'text/html': blob })];
-
-      navigator.clipboard.write(data).then(() => {
-        alert("Formatted HTML copied to clipboard!");
-      }).catch(err => {
-        alert("Failed to copy HTML.");
-      });
+      const range = document.createRange();
+      range.selectNodeContents(output);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      try {
+        document.execCommand('copy');
+        alert('Скопировано с форматированием!');
+      } catch (err) {
+        alert('Ошибка копирования');
+      }
+      selection.removeAllRanges();
     }
   </script>
 </body>
