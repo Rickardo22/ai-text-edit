@@ -65,7 +65,7 @@
 </head>
 <body>
   <h1>HTML Cleaner Tool</h1>
-  <div id="version">Version 0.36</div>
+  <div id="version">Version 0.37</div>
   <div contenteditable="true" id="input" class="editor" placeholder="Paste your content here..."></div>
 
   <div class="button-group">
@@ -123,6 +123,15 @@
 
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
+
+      // Удаляем пустые абзацы, div и br
+      tempDiv.querySelectorAll('p, div, br').forEach(el => {
+        const txt = el.textContent.replace(/\s+/g, '');
+        if (!txt || txt === '\u00A0') {
+          el.remove();
+        }
+      });
+
       tempDiv.querySelectorAll('div, p').forEach(block => {
         const spans = block.querySelectorAll('span');
         if (spans.length > 0) {
@@ -153,8 +162,10 @@
 
       html = tempDiv.innerHTML;
 
+      // Удаляем лишние пустые строки
       html = html.replace(/<p>\s*<\/p>/g, '');
       html = html.replace(/<br>\s*<br>/g, '<br>');
+      html = html.replace(/\n{2,}/g, '\n');
 
       document.getElementById('output').innerHTML = html;
       if (!document.getElementById('visualToggle').checked) {
@@ -205,6 +216,8 @@
       sel.removeAllRanges();
       sel.addRange(range);
       document.execCommand('copy');
+      sel.removeAllRanges();
+      alert('Скопировано с форматированием.');
     }
   </script>
 </body>
