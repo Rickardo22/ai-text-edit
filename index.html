@@ -38,7 +38,7 @@
 </head>
 <body>
   <h1>HTML Cleaner Tool</h1>
-  <div id="version">Version 0.40</div>
+  <div id="version">Version 0.41</div>
   <div contenteditable="true" id="input" class="editor" placeholder="Paste your content here..."></div>
 
   <div class="button-group">
@@ -55,6 +55,32 @@
   <div id="output" class="editor"></div>
 
   <script>
+    // Перехват вставки в #input
+    document.getElementById('input').addEventListener('paste', function(e) {
+      e.preventDefault();
+      const clipboard = e.clipboardData || window.clipboardData;
+      let html = clipboard.getData('text/html') || clipboard.getData('text/plain');
+
+      // удаляем svg, aria, data-атрибуты сразу
+      html = html.replace(/<svg[\s\S]*?<\/svg>/gi, '');
+      html = html.replace(/\s(data-[a-z-]+)="[^"]*"/gi, '');
+      html = html.replace(/\saria-[a-z-]+="[^"]*"/gi, '');
+
+      // создаём временный контейнер для нормализации ссылок
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+      temp.querySelectorAll('a').forEach(a => {
+        const href = a.getAttribute('href') || '#';
+        const text = a.innerText.trim();
+        const cleanA = document.createElement('a');
+        cleanA.href = href;
+        cleanA.textContent = text;
+        a.replaceWith(cleanA);
+      });
+
+      document.execCommand('insertHTML', false, temp.innerHTML);
+    });
+
     function toggleView() {
       const output = document.getElementById('output');
       if (document.getElementById('visualToggle').checked) {
@@ -92,7 +118,6 @@
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
 
-      // удаляем реально пустые контейнеры
       tempDiv.querySelectorAll('p, div').forEach(el => {
         const inner = el.innerHTML.replace(/\s|&nbsp;|<br>/g, '');
         if (inner === '' || inner === '•') {
@@ -100,7 +125,6 @@
         }
       });
 
-      // очищаем ссылки
       tempDiv.querySelectorAll('a').forEach(a => {
         const href = a.getAttribute('href') || '#';
         const text = a.innerText.trim();
