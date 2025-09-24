@@ -14,58 +14,31 @@
       flex-direction: column;
       align-items: center;
     }
-    h1 {
-      margin: 20px 0 10px;
-    }
-    #version {
-      font-size: 14px;
-      color: #666;
-      margin-bottom: 10px;
-    }
+    h1 { margin: 20px 0 10px; }
+    #version { font-size: 14px; color: #666; margin-bottom: 10px; }
     .editor {
-      width: 90%;
-      max-width: 1000px;
-      height: 250px;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      background: white;
-      overflow: auto;
-      white-space: pre-wrap;
+      width: 90%; max-width: 1000px; height: 250px;
+      padding: 10px; border: 1px solid #ccc; border-radius: 6px;
+      background: white; overflow: auto; white-space: pre-wrap;
     }
     .button-group {
-      margin: 15px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+      margin: 15px; display: flex; flex-wrap: wrap; gap: 10px;
     }
     button {
-      font-weight: bold;
-      padding: 10px 20px;
-      border-radius: 5px;
-      border: none;
-      background: #333;
-      color: white;
-      cursor: pointer;
+      font-weight: bold; padding: 10px 20px; border-radius: 5px;
+      border: none; background: #333; color: white; cursor: pointer;
     }
-    #outputToggle {
-      margin-bottom: 10px;
-    }
+    #outputToggle { margin-bottom: 10px; }
     #output {
-      width: 90%;
-      max-width: 1000px;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      background: white;
-      white-space: pre-wrap;
-      overflow: auto;
+      width: 90%; max-width: 1000px; padding: 10px;
+      border: 1px solid #ccc; border-radius: 6px;
+      background: white; white-space: pre-wrap; overflow: auto;
     }
   </style>
 </head>
 <body>
   <h1>HTML Cleaner Tool</h1>
-  <div id="version">Version 0.37</div>
+  <div id="version">Version 0.39</div>
   <div contenteditable="true" id="input" class="editor" placeholder="Paste your content here..."></div>
 
   <div class="button-group">
@@ -73,9 +46,12 @@
     <button onclick="checkSymbols()">Check Symbols</button>
     <button onclick="clearFields()">Clear All</button>
     <button onclick="copyCleaned()">Copy Cleaned</button>
+    <button onclick="downloadCleaned()">Download Cleaned</button>
   </div>
 
   <label><input type="checkbox" id="visualToggle" onchange="toggleView()"> Визуальный просмотр</label>
+  <label><input type="checkbox" id="emojiToggle"> Удалять эмодзи</label>
+
   <div id="output" class="editor"></div>
 
   <script>
@@ -107,69 +83,28 @@
         .replace(/&nbsp;|\u00a0/g, ' ')
         .replace(/&thinsp;|\u2009/g, '')
         .replace(/&copy;|©|&reg;|®/g, '')
-        .replace(/[→←]/g, '')
+        // стрелки теперь не режем!
         .replace(/\s{2,}/g, ' ');
 
-      html = html.replace(/<h[1-6][^>]*>[^<]*?[\u203C-\u3299\uD83C-\uDBFF\uDC00-\uDFFF]+[^<]*<\/h[1-6]>/g, (match) => {
-        return match.replace(/[\u203C-\u3299\uD83C-\uDBFF\uDC00-\uDFFF]/g, '');
-      });
-
-      const rows = html.match(/<table><tr><td>.*?<\/td><\/tr><\/table>/g);
-      if (rows) {
-        const table = '<table>' + rows.map(r => r.replace(/<\/?table>/g, '')).join('') + '</table>';
-        html = html.replace(/<table><tr><td>.*?<\/td><\/tr><\/table>/g, '');
-        html += table;
+      // Эмодзи по чекбоксу
+      if (document.getElementById('emojiToggle').checked) {
+        html = html.replace(/[\u203C-\u3299\uD83C-\uDBFF\uDC00-\uDFFF]/g, '');
       }
 
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
 
-      // Удаляем пустые абзацы, div и br
-      tempDiv.querySelectorAll('p, div, br').forEach(el => {
-        const txt = el.textContent.replace(/\s+/g, '');
-        if (!txt || txt === '\u00A0') {
+      // удаляем реально пустые контейнеры, но сохраняем ссылки
+      tempDiv.querySelectorAll('p, div').forEach(el => {
+        const inner = el.innerHTML.replace(/\s|&nbsp;|<br>/g, '');
+        if (inner === '' || inner === '•') {
           el.remove();
         }
       });
 
-      tempDiv.querySelectorAll('div, p').forEach(block => {
-        const spans = block.querySelectorAll('span');
-        if (spans.length > 0) {
-          const first = spans[0];
-          const style = first.style;
-          const isHeader = style.fontWeight === 'bold' || parseInt(style.fontWeight) >= 600 || parseInt(style.fontSize) >= 16;
-          if (isHeader) {
-            const h = document.createElement('h3');
-            h.innerHTML = first.innerHTML;
-            block.parentNode.insertBefore(h, block);
-            first.remove();
-          }
-
-          let rest = '';
-          spans.forEach((s, i) => {
-            if (i > 0 || !isHeader) {
-              rest += s.textContent + ' ';
-            }
-          });
-          if (rest.trim().length > 0) {
-            const p = document.createElement('p');
-            p.textContent = rest.trim();
-            block.parentNode.insertBefore(p, block.nextSibling);
-          }
-          block.remove();
-        }
-      });
-
-      html = tempDiv.innerHTML;
-
-      // Удаляем лишние пустые строки
-      html = html.replace(/<p>\s*<\/p>/g, '');
-      html = html.replace(/<br>\s*<br>/g, '<br>');
-      html = html.replace(/\n{2,}/g, '\n');
-
-      document.getElementById('output').innerHTML = html;
+      document.getElementById('output').innerHTML = tempDiv.innerHTML;
       if (!document.getElementById('visualToggle').checked) {
-        document.getElementById('output').textContent = html;
+        document.getElementById('output').textContent = tempDiv.innerHTML;
       }
     }
 
@@ -184,9 +119,6 @@
         'Неразрывный пробел': /\u00a0/g,
         'Тонкая пауза': /\u2009/g,
         'Копирайт/Регистрация': /©|®/g,
-        'Стрелки': /→|←/g,
-        'data-start': /data-start/g,
-        'data-end': /data-end/g,
         'Emoji': /[\u203C-\u3299\uD83C-\uDBFF\uDC00-\uDFFF]/g
       };
       let result = 'Проверка символов:\n';
@@ -218,6 +150,17 @@
       document.execCommand('copy');
       sel.removeAllRanges();
       alert('Скопировано с форматированием.');
+    }
+
+    function downloadCleaned() {
+      const content = document.getElementById('output').innerHTML;
+      const blob = new Blob([content], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'cleaned.html';
+      a.click();
+      URL.revokeObjectURL(url);
     }
   </script>
 </body>
