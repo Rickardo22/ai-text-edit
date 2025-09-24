@@ -38,7 +38,7 @@
 </head>
 <body>
   <h1>HTML Cleaner Tool</h1>
-  <div id="version">Version 0.39</div>
+  <div id="version">Version 0.40</div>
   <div contenteditable="true" id="input" class="editor" placeholder="Paste your content here..."></div>
 
   <div class="button-group">
@@ -83,10 +83,8 @@
         .replace(/&nbsp;|\u00a0/g, ' ')
         .replace(/&thinsp;|\u2009/g, '')
         .replace(/&copy;|©|&reg;|®/g, '')
-        // стрелки теперь не режем!
         .replace(/\s{2,}/g, ' ');
 
-      // Эмодзи по чекбоксу
       if (document.getElementById('emojiToggle').checked) {
         html = html.replace(/[\u203C-\u3299\uD83C-\uDBFF\uDC00-\uDFFF]/g, '');
       }
@@ -94,12 +92,22 @@
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
 
-      // удаляем реально пустые контейнеры, но сохраняем ссылки
+      // удаляем реально пустые контейнеры
       tempDiv.querySelectorAll('p, div').forEach(el => {
         const inner = el.innerHTML.replace(/\s|&nbsp;|<br>/g, '');
         if (inner === '' || inner === '•') {
           el.remove();
         }
+      });
+
+      // очищаем ссылки
+      tempDiv.querySelectorAll('a').forEach(a => {
+        const href = a.getAttribute('href') || '#';
+        const text = a.innerText.trim();
+        const cleanA = document.createElement('a');
+        cleanA.href = href;
+        cleanA.textContent = text;
+        a.replaceWith(cleanA);
       });
 
       document.getElementById('output').innerHTML = tempDiv.innerHTML;
