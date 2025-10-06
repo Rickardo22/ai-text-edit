@@ -38,7 +38,7 @@
 </head>
 <body>
   <h1>HTML Cleaner Tool</h1>
-  <div id="version">Version 0.46</div>
+  <div id="version">Version 0.48</div>
 
   <textarea id="input" placeholder="Paste your HTML here..."></textarea>
 
@@ -49,7 +49,10 @@
     <button onclick="copyCleaned()">Copy Cleaned</button>
   </div>
 
-  <label><input type="checkbox" id="emojiToggle"> Удалять эмодзи</label>
+  <div style="margin-bottom:10px;">
+    <label><input type="checkbox" id="emojiToggle"> Удалять эмодзи</label> &nbsp;&nbsp;
+    <label><input type="checkbox" id="visualToggle" onchange="toggleView()"> Визуальный просмотр / HTML</label>
+  </div>
 
   <div id="output"></div>
 
@@ -58,25 +61,19 @@
       e.preventDefault();
       const clipboard = e.clipboardData || window.clipboardData;
       let html = clipboard.getData('text/html') || clipboard.getData('text/plain');
-
       html = cleanOnPaste(html);
       this.value = html.trim();
     });
 
     function cleanOnPaste(html) {
       html = html
-        // Убираем скрытые unicode-символы (Zero-width, BOM, и т.д.)
         .replace(/[\u200B-\u200D\uFEFF\u2028\u2029]/g, '')
-        // Убираем svg, aria, data-атрибуты
         .replace(/<svg[\s\S]*?<\/svg>/gi, '')
         .replace(/\s(data-[a-z-]+)="[^"]*"/gi, '')
         .replace(/\saria-[a-z-]+="[^"]*"/gi, '')
-        // Убираем пустые div/span
         .replace(/<span[^>]*>(\s|&nbsp;|<br>)*<\/span>/gi, '')
         .replace(/<div>(\s|<br>|&nbsp;)*<\/div>/gi, '')
-        // Убираем лишние переводы строк между тегами
         .replace(/>\s*\n\s*</g, '><')
-        // Убираем множественные переводы строк
         .replace(/\n{2,}/g, '\n')
         .trim();
       return html;
@@ -86,12 +83,20 @@
       let html = document.getElementById('input').value;
 
       html = html
+        // убираем невидимые символы
         .replace(/[\u200B-\u200D\uFEFF\u2028\u2029]/g, '')
+        // объединяем множественные <br>
         .replace(/<br\s*\/?>\s*(<br\s*\/?>)+/g, '<br>')
+        // убираем пустые <p>
         .replace(/<p>(\s|&nbsp;)*<\/p>/g, '')
+        // очищаем служебные data-* атрибуты
         .replace(/\sdata-start="[^"]*"/g, '')
         .replace(/\sdata-end="[^"]*"/g, '')
-        .replace(/&mdash;|—/g, '-')
+        // 🟢 новая логика для тире — ставим среднее тире с пробелами
+        .replace(/(&mdash;|—|–|−)/g, ' – ')
+        // нормализуем множественные пробелы вокруг тире
+        .replace(/\s*–\s*/g, ' – ')
+        // кавычки и спецсимволы
         .replace(/&laquo;|&raquo;|«|»/g, '"')
         .replace(/&ldquo;|&rdquo;|“|”/g, '"')
         .replace(/&rsquo;|’/g, "'")
@@ -99,7 +104,7 @@
         .replace(/&nbsp;|\u00a0/g, ' ')
         .replace(/&thinsp;|\u2009/g, '')
         .replace(/&copy;|©|&reg;|®/g, '')
-        // Убираем пробелы и переводы строк между тегами
+        // убираем пробелы между тегами
         .replace(/>\s*\n\s*</g, '><')
         .replace(/\s{2,}/g, ' ');
 
@@ -130,6 +135,18 @@
       });
 
       document.getElementById('output').innerHTML = tempDiv.innerHTML;
+      if (!document.getElementById('visualToggle').checked) {
+        document.getElementById('output').textContent = tempDiv.innerHTML;
+      }
+    }
+
+    function toggleView() {
+      const output = document.getElementById('output');
+      if (document.getElementById('visualToggle').checked) {
+        output.innerHTML = output.textContent;
+      } else {
+        output.textContent = output.innerHTML;
+      }
     }
 
     function checkSymbols() {
