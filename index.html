@@ -38,7 +38,7 @@
 </head>
 <body>
   <h1>HTML Cleaner Tool</h1>
-  <div id="version">Version 0.45</div>
+  <div id="version">Version 0.46</div>
 
   <textarea id="input" placeholder="Paste your HTML here..."></textarea>
 
@@ -54,7 +54,6 @@
   <div id="output"></div>
 
   <script>
-    // Теперь вставка работает без contenteditable
     document.getElementById('input').addEventListener('paste', function(e) {
       e.preventDefault();
       const clipboard = e.clipboardData || window.clipboardData;
@@ -65,11 +64,21 @@
     });
 
     function cleanOnPaste(html) {
-      html = html.replace(/<svg[\s\S]*?<\/svg>/gi, '');
-      html = html.replace(/\s(data-[a-z-]+)="[^"]*"/gi, '');
-      html = html.replace(/\saria-[a-z-]+="[^"]*"/gi, '');
-      html = html.replace(/<span[^>]*>(\s|&nbsp;|<br>)*<\/span>/gi, '');
-      html = html.replace(/<div>(\s|<br>|&nbsp;)*<\/div>/gi, '');
+      html = html
+        // Убираем скрытые unicode-символы (Zero-width, BOM, и т.д.)
+        .replace(/[\u200B-\u200D\uFEFF\u2028\u2029]/g, '')
+        // Убираем svg, aria, data-атрибуты
+        .replace(/<svg[\s\S]*?<\/svg>/gi, '')
+        .replace(/\s(data-[a-z-]+)="[^"]*"/gi, '')
+        .replace(/\saria-[a-z-]+="[^"]*"/gi, '')
+        // Убираем пустые div/span
+        .replace(/<span[^>]*>(\s|&nbsp;|<br>)*<\/span>/gi, '')
+        .replace(/<div>(\s|<br>|&nbsp;)*<\/div>/gi, '')
+        // Убираем лишние переводы строк между тегами
+        .replace(/>\s*\n\s*</g, '><')
+        // Убираем множественные переводы строк
+        .replace(/\n{2,}/g, '\n')
+        .trim();
       return html;
     }
 
@@ -77,6 +86,7 @@
       let html = document.getElementById('input').value;
 
       html = html
+        .replace(/[\u200B-\u200D\uFEFF\u2028\u2029]/g, '')
         .replace(/<br\s*\/?>\s*(<br\s*\/?>)+/g, '<br>')
         .replace(/<p>(\s|&nbsp;)*<\/p>/g, '')
         .replace(/\sdata-start="[^"]*"/g, '')
@@ -89,6 +99,8 @@
         .replace(/&nbsp;|\u00a0/g, ' ')
         .replace(/&thinsp;|\u2009/g, '')
         .replace(/&copy;|©|&reg;|®/g, '')
+        // Убираем пробелы и переводы строк между тегами
+        .replace(/>\s*\n\s*</g, '><')
         .replace(/\s{2,}/g, ' ');
 
       if (document.getElementById('emojiToggle').checked) {
@@ -98,13 +110,11 @@
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
 
-      // чистим пустые блоки
       tempDiv.querySelectorAll('p, div, span').forEach(el => {
         const inner = el.innerHTML.replace(/(&nbsp;|\s|<br\s*\/?>)+/g, '');
         if (inner === '') el.remove();
       });
 
-      // очищаем ссылки
       tempDiv.querySelectorAll('a').forEach(a => {
         let href = a.getAttribute('href');
         const text = a.innerText.trim();
