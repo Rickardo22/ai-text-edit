@@ -16,10 +16,11 @@
     }
     h1 { margin: 20px 0 10px; }
     #version { font-size: 14px; color: #666; margin-bottom: 10px; }
-    .editor {
+    textarea {
       width: 90%; max-width: 1000px; height: 250px;
       padding: 10px; border: 1px solid #ccc; border-radius: 6px;
-      background: white; overflow: auto; white-space: pre-wrap;
+      background: white; font-family: monospace; font-size: 14px;
+      line-height: 1.5; resize: vertical;
     }
     .button-group {
       margin: 15px; display: flex; flex-wrap: wrap; gap: 10px;
@@ -28,7 +29,6 @@
       font-weight: bold; padding: 10px 20px; border-radius: 5px;
       border: none; background: #333; color: white; cursor: pointer;
     }
-    #outputToggle { margin-bottom: 10px; }
     #output {
       width: 90%; max-width: 1000px; padding: 10px;
       border: 1px solid #ccc; border-radius: 6px;
@@ -38,8 +38,9 @@
 </head>
 <body>
   <h1>HTML Cleaner Tool</h1>
-  <div id="version">Version 0.44</div>
-  <div contenteditable="true" id="input" class="editor" placeholder="Paste your content here..."></div>
+  <div id="version">Version 0.45</div>
+
+  <textarea id="input" placeholder="Paste your HTML here..."></textarea>
 
   <div class="button-group">
     <button onclick="autoClean()">Auto Clean</button>
@@ -48,68 +49,38 @@
     <button onclick="copyCleaned()">Copy Cleaned</button>
   </div>
 
-  <label><input type="checkbox" id="visualToggle" onchange="toggleView()"> Визуальный просмотр</label>
   <label><input type="checkbox" id="emojiToggle"> Удалять эмодзи</label>
 
-  <div id="output" class="editor"></div>
+  <div id="output"></div>
 
   <script>
-    // Перехват вставки и очистка
+    // Теперь вставка работает без contenteditable
     document.getElementById('input').addEventListener('paste', function(e) {
       e.preventDefault();
       const clipboard = e.clipboardData || window.clipboardData;
       let html = clipboard.getData('text/html') || clipboard.getData('text/plain');
 
+      html = cleanOnPaste(html);
+      this.value = html.trim();
+    });
+
+    function cleanOnPaste(html) {
       html = html.replace(/<svg[\s\S]*?<\/svg>/gi, '');
       html = html.replace(/\s(data-[a-z-]+)="[^"]*"/gi, '');
       html = html.replace(/\saria-[a-z-]+="[^"]*"/gi, '');
-
-      const temp = document.createElement('div');
-      temp.innerHTML = html;
-
-      // Убираем пустые блоки сразу при вставке
-      temp.querySelectorAll('p, div, span').forEach(el => {
-        const inner = el.innerHTML.replace(/(&nbsp;|\s|<br\s*\/?>)+/g, '');
-        if (inner === '') el.remove();
-      });
-
-      // Нормализуем ссылки
-      temp.querySelectorAll('a').forEach(a => {
-        let href = a.getAttribute('href');
-        const text = a.innerText.trim();
-        if (!href) {
-          const match = text.match(/https?:\/\/[^\s]+/);
-          if (match) href = match[0];
-        }
-        if (!href) href = '#';
-        const cleanA = document.createElement('a');
-        cleanA.href = href;
-        cleanA.textContent = text;
-        a.replaceWith(cleanA);
-      });
-
-      document.execCommand('insertHTML', false, temp.innerHTML);
-    });
-
-    function toggleView() {
-      const output = document.getElementById('output');
-      if (document.getElementById('visualToggle').checked) {
-        output.innerHTML = output.textContent;
-      } else {
-        output.textContent = output.innerHTML;
-      }
+      html = html.replace(/<span[^>]*>(\s|&nbsp;|<br>)*<\/span>/gi, '');
+      html = html.replace(/<div>(\s|<br>|&nbsp;)*<\/div>/gi, '');
+      return html;
     }
 
     function autoClean() {
-      const input = document.getElementById('input');
-      let html = input.innerHTML;
+      let html = document.getElementById('input').value;
 
-      // Базовая очистка
-      html = html.replace(/<br\s*\/?>\s*(<br\s*\/?>)+/g, '<br>');
-      html = html.replace(/<p>(\s|&nbsp;)*<\/p>/g, '');
-      html = html.replace(/\sdata-start="[^"]*"/g, '')
-                 .replace(/\sdata-end="[^"]*"/g, '');
       html = html
+        .replace(/<br\s*\/?>\s*(<br\s*\/?>)+/g, '<br>')
+        .replace(/<p>(\s|&nbsp;)*<\/p>/g, '')
+        .replace(/\sdata-start="[^"]*"/g, '')
+        .replace(/\sdata-end="[^"]*"/g, '')
         .replace(/&mdash;|—/g, '-')
         .replace(/&laquo;|&raquo;|«|»/g, '"')
         .replace(/&ldquo;|&rdquo;|“|”/g, '"')
@@ -127,16 +98,13 @@
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
 
-      // Удаляем пустые блоки и <p><br></p>
+      // чистим пустые блоки
       tempDiv.querySelectorAll('p, div, span').forEach(el => {
         const inner = el.innerHTML.replace(/(&nbsp;|\s|<br\s*\/?>)+/g, '');
         if (inner === '') el.remove();
       });
 
-      // Удаляем пустые абзацы между заголовками
-      tempDiv.innerHTML = tempDiv.innerHTML.replace(/<\/h[1-6]>\s*<p><\/p>/g, '</h2>');
-
-      // Чистим ссылки
+      // очищаем ссылки
       tempDiv.querySelectorAll('a').forEach(a => {
         let href = a.getAttribute('href');
         const text = a.innerText.trim();
@@ -152,13 +120,10 @@
       });
 
       document.getElementById('output').innerHTML = tempDiv.innerHTML;
-      if (!document.getElementById('visualToggle').checked) {
-        document.getElementById('output').textContent = tempDiv.innerHTML;
-      }
     }
 
     function checkSymbols() {
-      const input = document.getElementById('input').innerHTML;
+      const input = document.getElementById('input').value;
       const symbols = {
         'Тире (—)': /—/g,
         'Кавычки (« »)': /«|»/g,
@@ -176,7 +141,7 @@
         result += `${key}: ${matches ? 'НАЙДЕНО (' + matches.length + ')' : 'OK'}\n`;
       }
 
-      const plainText = document.getElementById('input').innerText;
+      const plainText = input.replace(/<[^>]*>/g, '');
       const words = plainText.trim().split(/\s+/).filter(Boolean).length;
       const chars = plainText.replace(/\s/g, '').length;
       result += `\nСлов: ${words}\nСимволов (без пробелов): ${chars}`;
@@ -184,7 +149,7 @@
     }
 
     function clearFields() {
-      document.getElementById('input').innerHTML = '';
+      document.getElementById('input').value = '';
       document.getElementById('output').innerHTML = '';
     }
 
