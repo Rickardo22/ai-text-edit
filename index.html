@@ -38,7 +38,7 @@
 </head>
 <body>
   <h1>HTML Cleaner Tool</h1>
-  <div id="version">Version 0.42</div>
+  <div id="version">Version 0.44</div>
   <div contenteditable="true" id="input" class="editor" placeholder="Paste your content here..."></div>
 
   <div class="button-group">
@@ -46,7 +46,6 @@
     <button onclick="checkSymbols()">Check Symbols</button>
     <button onclick="clearFields()">Clear All</button>
     <button onclick="copyCleaned()">Copy Cleaned</button>
-    <button onclick="downloadCleaned()">Download Cleaned</button>
   </div>
 
   <label><input type="checkbox" id="visualToggle" onchange="toggleView()"> Визуальный просмотр</label>
@@ -55,13 +54,12 @@
   <div id="output" class="editor"></div>
 
   <script>
-    // Перехват вставки
+    // Перехват вставки и очистка
     document.getElementById('input').addEventListener('paste', function(e) {
       e.preventDefault();
       const clipboard = e.clipboardData || window.clipboardData;
       let html = clipboard.getData('text/html') || clipboard.getData('text/plain');
 
-      // убираем svg, aria, data-атрибуты
       html = html.replace(/<svg[\s\S]*?<\/svg>/gi, '');
       html = html.replace(/\s(data-[a-z-]+)="[^"]*"/gi, '');
       html = html.replace(/\saria-[a-z-]+="[^"]*"/gi, '');
@@ -69,17 +67,21 @@
       const temp = document.createElement('div');
       temp.innerHTML = html;
 
-      // нормализация ссылок
+      // Убираем пустые блоки сразу при вставке
+      temp.querySelectorAll('p, div, span').forEach(el => {
+        const inner = el.innerHTML.replace(/(&nbsp;|\s|<br\s*\/?>)+/g, '');
+        if (inner === '') el.remove();
+      });
+
+      // Нормализуем ссылки
       temp.querySelectorAll('a').forEach(a => {
         let href = a.getAttribute('href');
         const text = a.innerText.trim();
-
         if (!href) {
           const match = text.match(/https?:\/\/[^\s]+/);
           if (match) href = match[0];
         }
         if (!href) href = '#';
-
         const cleanA = document.createElement('a');
         cleanA.href = href;
         cleanA.textContent = text;
@@ -102,11 +104,11 @@
       const input = document.getElementById('input');
       let html = input.innerHTML;
 
+      // Базовая очистка
       html = html.replace(/<br\s*\/?>\s*(<br\s*\/?>)+/g, '<br>');
       html = html.replace(/<p>(\s|&nbsp;)*<\/p>/g, '');
       html = html.replace(/\sdata-start="[^"]*"/g, '')
                  .replace(/\sdata-end="[^"]*"/g, '');
-
       html = html
         .replace(/&mdash;|—/g, '-')
         .replace(/&laquo;|&raquo;|«|»/g, '"')
@@ -125,22 +127,24 @@
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
 
-      tempDiv.querySelectorAll('p, div').forEach(el => {
-        const inner = el.innerHTML.replace(/\s|&nbsp;|<br>/g, '');
-        if (inner === '' || inner === '•') el.remove();
+      // Удаляем пустые блоки и <p><br></p>
+      tempDiv.querySelectorAll('p, div, span').forEach(el => {
+        const inner = el.innerHTML.replace(/(&nbsp;|\s|<br\s*\/?>)+/g, '');
+        if (inner === '') el.remove();
       });
 
-      // нормализация ссылок при очистке
+      // Удаляем пустые абзацы между заголовками
+      tempDiv.innerHTML = tempDiv.innerHTML.replace(/<\/h[1-6]>\s*<p><\/p>/g, '</h2>');
+
+      // Чистим ссылки
       tempDiv.querySelectorAll('a').forEach(a => {
         let href = a.getAttribute('href');
         const text = a.innerText.trim();
-
         if (!href) {
           const match = text.match(/https?:\/\/[^\s]+/);
           if (match) href = match[0];
         }
         if (!href) href = '#';
-
         const cleanA = document.createElement('a');
         cleanA.href = href;
         cleanA.textContent = text;
@@ -176,7 +180,6 @@
       const words = plainText.trim().split(/\s+/).filter(Boolean).length;
       const chars = plainText.replace(/\s/g, '').length;
       result += `\nСлов: ${words}\nСимволов (без пробелов): ${chars}`;
-
       alert(result);
     }
 
@@ -195,17 +198,6 @@
       document.execCommand('copy');
       sel.removeAllRanges();
       alert('Скопировано с форматированием.');
-    }
-
-    function downloadCleaned() {
-      const content = document.getElementById('output').innerHTML;
-      const blob = new Blob([content], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'cleaned.html';
-      a.click();
-      URL.revokeObjectURL(url);
     }
   </script>
 </body>
